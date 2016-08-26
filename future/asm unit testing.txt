@@ -1,0 +1,53 @@
+
+    ; need to handle unit testing in preprocessor:
+
+    assertEq eax=12h ebx=20h "Failed to do thing"   ; file somefile.inc line 224
+    => => => => => => => => => => => => => => => =>
+.data 
+    assertEq_datacaf124f1 = db "Failed to do thing (somefile.inc:224)" 0
+    assertEq_datacaf124f2 = db "eax=12h" 0
+    assertEq_datacaf124f3 = db "ebx=20h" 0
+.code
+    push [assertEq_datacaf124f1]   ; error message (includes file + line info)
+    call assertEq_setupMsg        ; set message for future calls to assertEq_check*****
+    
+    push [assertEq_datacaf124f2]   ; expr literal: "eax=12h"
+    push 12h                      ; expected value for eax
+    call assertEq_checkEax        ; check eax. If check fails, will print message showing what fails, dump registers, and interrupt
+                                  ; (or do other behaviors -- can we implement a full unit testing framework in asm?)
+
+    push [assertEq_datacaf124f3]   ; expr literal
+    push 20h                      ; expected value for ebx
+    call assertEq_checkEbx        ; check ebx
+
+    assertEq [eax+2]=[ 123h 4h afh 3300h ] eax=foo     ; file foo/bar/baz.inc line 102
+    => => => => => => => => => => => => => => => =>
+.data
+    assertEq_databaf01233 = db "Assertion failed: (foo/bar/baz.inc:102)" 0
+    assertEq_databaf01234 = db "[eax+4] = [123h 4h afh 3300h]" 0
+    assertEq_databaf01235 = dw 4 123h 4h afh 330h
+    assertEq_databaf01236 = db "eax = foo" 0
+.code
+    push [assertEq_databaf01233]     ; error message (includes file + line info)
+    call assertEq_setupMsg          ; set message for future calls to assertEq_check****
+
+    push [assertEq_databaf01234]    ; expr literal
+    push [assertEq_databaf01235]    ; data to compare to (first word is num words to compare)
+    push 2                          ; eax offset
+    call assertEq_checkMemEax       ; compare memory at eax, plus offset
+
+    ; should be capable of comparing to variables as well (leave interpretation to the 
+    ; assembler; just do textual replacement in assertEq expansion)
+
+    push [assertEq_databaf01236]     ; expr literal
+    push foo                        ; push value of foo (whatever foo may be)
+    call assertEq_checkEax          ; check eax
+
+
+
+
+
+
+
+
+
