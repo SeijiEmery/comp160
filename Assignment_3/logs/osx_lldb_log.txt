@@ -1,0 +1,38 @@
+(lldb) target create "build/a3"
+Current executable set to 'build/a3' (i386).
+(lldb) break set -b vset
+Breakpoint 1: where = a3`vset, address = 0x00001fe9
+(lldb) break set -b vadd1
+Breakpoint 2: where = a3`vadd1, address = 0x00001feb
+(lldb) break set -b vsub1
+Breakpoint 3: where = a3`vsub1, address = 0x00001fed
+(lldb) break set -b vdone
+Breakpoint 4: where = a3`vdone, address = 0x00001fef
+(lldb) run
+(lldb) register read eax ebx ecx edx
+     eax = 0x00000007
+     ebx = 0x00000008
+     ecx = 0x00000005
+     edx = 0x0000000a
+(lldb) continue
+(lldb) register read eax ebx ecx edx
+     eax = 0x0000000f
+     ebx = 0x00000008
+     ecx = 0x00000005
+     edx = 0x0000000a
+(lldb) continue
+(lldb) register read eax ebx ecx edx
+     eax = 0x0000000a
+     ebx = 0x00000008
+     ecx = 0x00000005
+     edx = 0x0000000a
+(lldb) continue
+(lldb) register read eax ebx ecx edx
+     eax = 0x00000000
+     ebx = 0x00000008
+     ecx = 0x00000005
+     edx = 0x0000000a
+(lldb) continue
+Process 57256 resuming
+Process 57256 exited with status = 0 (0x00000000)
+(lldb)
