@@ -87,10 +87,23 @@ section .data
     str_ebx: db "  ebx = 0x",0
     str_ecx: db "  ecx = 0x",0
     str_edx: db "  edx = 0x",0
+    str_esp: db "  esp = 0x",0
+    str_ebp: db "  ebp = 0x",0
     chr_0: db 30h
     chr_A: db 41h
 
     io_buffer: times SCRATCH_MEM db 0
+
+%macro DECL_FCN 1
+%1: 
+    push ebp
+    mov  ebp,esp
+%endmacro
+%macro END_FCN 1
+    mov esp,ebp
+    pop ebp
+    ret
+%endmacro
 
 section .text
 
@@ -112,29 +125,25 @@ writeStr:
 
 
 ; writes value in eax as a hexadecimal string to [edi]
-writeHex32:
-    push ebp
-    mov ebp,esp
+DECL_FCN writeHex32
 
     push ebx
     push edx
 
     add edi,8
-    call .writeByte
-    call .writeByte
-    call .writeByte
-    call .writeByte
+    call writeByte
+    call writeByte
+    call writeByte
+    call writeByte
     add edi,8
 
     pop edx
     pop ebx
     xor eax,eax
 
-    mov esp,ebp
-    pop ebp
-    ret
+END_FCN writeHex32
 
-    .writeByte:
+writeByte:
     xor edx,edx
     mov ebx,10
     div ebx
@@ -152,10 +161,7 @@ writeHex32:
 
 
 ; writes value in eax as a hexadecimal string to [edi]
-writeHex:
-    push ebp
-    mov  ebp,esp
-
+DECL_FCN writeHex
     push ebx
     push edx
 
@@ -193,17 +199,11 @@ writeHex:
     .end:
     pop ebx
     pop edx
-
-    mov esp,ebp
-    pop ebp
-    ret
+END_FCN writeHex
 
 
 ; dumpRegisters(): writes contents of rax,rbx,rcx,rdx to stdout.
-dumpRegisters:
-    push ebp
-    mov  ebp,esp
-
+DECL_FCN dumpRegisters
     push eax
     push ebx
     push ecx
@@ -217,28 +217,34 @@ dumpRegisters:
     ; write "eax = " to io_buffer
     mov esi,str_eax
     call writeStr
-
     call writeHex32
 
     ; write "ebx = " to io_buffer
     mov esi,str_ebx
     call writeStr
-
     mov eax,ebx
     call writeHex32
 
     ; write "ecx = " to io_buffer
     mov esi,str_ecx
     call writeStr
-
     mov eax,ecx
     call writeHex32
 
     ; write "edx = " to io_buffer
     mov esi,str_edx
     call writeStr
-
     mov eax,edx
+    call writeHex32
+
+    mov esi,str_esp
+    call writeStr
+    mov eax,esp
+    call writeHex32
+
+    mov esi,str_ebp
+    call writeStr
+    mov eax,ebp
     call writeHex32
 
     ; add '\n' character
@@ -261,10 +267,7 @@ dumpRegisters:
     pop ecx
     pop ebx
     pop eax
-
-    mov esp,ebp
-    pop ebp
-    ret
+END_FCN dumpRegisters
 
 
 
