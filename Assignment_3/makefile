@@ -1,6 +1,6 @@
 
 NASM_OSX = nasm -f macho
-LD_OSX   = ld -arch i386 -macosx_version_min 10.7.0
+LD_OSX   = ld -arch i386 -macosx_version_min 10.7.0 -no_pie
 
 NASM = $(NASM_OSX)
 LD   = $(LD_OSX)
