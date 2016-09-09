@@ -12,14 +12,31 @@ start:
     push -1
     call syscall_exit
 
+
+%macro WRITE_STR 1
+section .data
+%%str: db %1,0
+section .text
+    mov esi,%%str
+    call writeStr
+%endmacro
+
 ;
 ; function main ()
 ;
 _main:
-    push 14
-    push str_hello
-    push 0
-    call syscall_write
+    mov edi, io_buffer
+
+    ; mov esi, str_hello
+    ; call writeStr
+    
+    ; mov eax,120498
+    ; call writeHex32
+
+    ; mov [edi], byte 10
+    ; inc edi
+
+    ; mov edi, io_buffer
 
     ; Set registers to execute (A + B) - (C + D)
     ; (represented, conveniently, by rax = A, rbx = B, etc)
@@ -28,20 +45,30 @@ _main:
     mov ecx,5
     mov edx,3
     _breakpoint_setValues:   ; set a breakpoint here in lldb to inspect values.
-    call dumpRegisters
-    call dumpRegisters
+
+    WRITE_STR {"Set registers:          "}
     call dumpRegisters
     
     ; First addition operation: A += B, C += D.
     add eax,ebx
     add ecx,edx
     _breakpoint_addedValues: ; set a breakpoint here in lldb to inspect values.
+
+    WRITE_STR {"Added A += B, C += D:   "}
     call dumpRegisters
     
     ; Second operation: A -= C.
     sub eax,ecx
     _breakpoint_done:        ; set a breakpoint here in lldb to inspect values.
+
+    WRITE_STR {"Added A -= C:           "}
     call dumpRegisters
+
+    sub  edi,io_buffer
+    push edi
+    push io_buffer
+    push 0
+    call syscall_write
     
     ; exit(0) -- Uses bsd syscall convention.
     push 0
@@ -78,9 +105,9 @@ syscall_write:
 ;
 
 ; Scratch buffer used by I/O
-%define SCRATCH_MEM 1024
-; section .bss
-; io_buffer: resb SCRATCH_MEM  ; reserve N bytes
+%define SCRATCH_MEM 4096
+section .bss
+io_buffer: resb SCRATCH_MEM  ; reserve N bytes
 
 section .data
     str_eax: db "eax = 0x",0
@@ -89,8 +116,6 @@ section .data
     str_edx: db "  edx = 0x",0
     str_esp: db "  esp = 0x",0
     str_ebp: db "  ebp = 0x",0
-
-    io_buffer: times SCRATCH_MEM db 0
 
 %macro DECL_FCN 1
 %1: 
@@ -105,22 +130,36 @@ section .data
 
 section .text
 
-; Writes a zero-delimited c string in esi to edi.
-writeStr:
-    push eax  ; save eax
+; Writes a zero-delimited c string in esi to stdout.
+DECL_FCN putStr
+    ; mov  edi, io_buffer
+    call writeStr
+
+    ; sub edi,io_buffer
+    ; push edi
+    ; push io_buffer
+    ; push 0
+    ; call syscall_write
+END_FCN putStr
+
+; writes a zero-terminated string from esi to edi.
+DECL_FCN writeStr
+    push eax
     xor eax,eax
-    .loop:
+    .l1:
     mov al,[esi]
     cmp al,0
-    jz .exit
+    jz .end
 
     mov [edi],al
     inc esi
     inc edi
-    jmp .loop
-    .exit:
+    jmp .l1
+
+    .end:
     pop eax
-    ret
+END_FCN writeStr
+
 
 
 ; writes value in eax as a hexadecimal string to [edi]
@@ -216,12 +255,9 @@ DECL_FCN dumpRegisters
     push edx
 
     push esi
-    push edi
 
     push ebp
     mov  ebp,esp
-
-    mov edi,io_buffer
 
     ; write "eax = " to io_buffer
     mov esi,str_eax
@@ -261,18 +297,20 @@ DECL_FCN dumpRegisters
     inc edi
     
     ; calculate buffer_size in edi
-    sub edi, io_buffer
+    ; sub edi, io_buffer
+    ; mov edi,eax
 
     ; call write(stdout, io_buffer, buffer_size)
-    push edi
-    push io_buffer
-    push 0
-    call syscall_write
+    ; push edi
+    ; push io_buffer
+    ; push 0
+    ; call syscall_write
+
+    ; mov edi, io_buffer
 
     mov esp,ebp
     pop ebp
 
-    pop edi
     pop esi
 
     pop edx
