@@ -118,34 +118,27 @@ array_memcpy:
 
 ; memcpy (dst dsi, src esi, ecx num_bytes)
 memcpy:
+    cld         ; clear direction flag: tell movs to increment esi, dsi
     cmp ecx,4
     jl .writeWord
 
-    .writeDword:
-    mov [edi], dword [esi]
-    add edi,4
-    add esi,4
-    sub ecx,4
+    push ecx
+    shl  ecx, 2  ; ecx /= 4
+    rep  movsd   ; move ecx dwords from esi to edi
 
-    cmp ecx,4
-    jge .writeDword
-
+    pop ecx
     .writeWord:
     cmp ecx,2
-    jl .writeByte
+    jl  .writeByte
 
-    mov [edi], word [esi]
-    add edi,2
-    add esi,2
+    movsw        ; move 1 word from esi to edi
     sub ecx,2
 
     .writeByte:
     cmp ecx,1
-    jl .end
+    jl  .end
 
-    mov [edi], byte [esi]
-    inc edi
-    inc esi
+    movsb        ; move 1 byte from esi to edi
     dec ecx
 
     .end:
