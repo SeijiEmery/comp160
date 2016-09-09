@@ -218,6 +218,9 @@ DECL_FCN dumpRegisters
     push esi
     push edi
 
+    push ebp
+    mov  ebp,esp
+
     mov edi,io_buffer
 
     ; write "eax = " to io_buffer
@@ -265,6 +268,9 @@ DECL_FCN dumpRegisters
     push io_buffer
     push 0
     call syscall_write
+
+    mov esp,ebp
+    pop ebp
 
     pop edi
     pop esi
