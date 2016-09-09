@@ -5,8 +5,8 @@
 
 template <class T>
 class RCBaseObject {
-    int  _rc = 0;
-    bool _released = false;
+    int16_t _rc = 0;
+    bool    _released = false;
 
     RCBaseObject () {}
     // virtual ~RCBaseObject () {}
