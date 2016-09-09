@@ -109,6 +109,15 @@ array_memcpy:
     ; advance to offset
     add edi, ebx
 
+    call memcpy
+
+    pop edi     ; restore edi
+    .noCopy:
+    pop eax     ; restore eax
+    ret
+
+; memcpy (dst dsi, src esi, ecx num_bytes)
+memcpy:
     cmp ecx,4
     jl .writeWord
 
@@ -141,13 +150,7 @@ array_memcpy:
 
     .end:
     ASSERT_EQ ecx, 0, _ASSERT_ERROR_ARRAY_MEMCPY_INTERNAL_ERROR_ECX
-
-    pop edi     ; restore edi
-    .noCopy:
-    pop eax     ; restore eax
     ret
-
-
 
 
 
