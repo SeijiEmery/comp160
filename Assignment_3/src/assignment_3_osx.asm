@@ -89,8 +89,6 @@ section .data
     str_edx: db "  edx = 0x",0
     str_esp: db "  esp = 0x",0
     str_ebp: db "  ebp = 0x",0
-    chr_0: db 30h
-    chr_A: db 41h
 
     io_buffer: times SCRATCH_MEM db 0
 
@@ -110,6 +108,7 @@ section .text
 ; Writes a zero-delimited c string in esi to edi.
 writeStr:
     push eax  ; save eax
+    xor eax,eax
     .loop:
     mov al,[esi]
     cmp al,0
@@ -144,63 +143,70 @@ DECL_FCN writeHex32
 END_FCN writeHex32
 
 writeByte:
-    xor edx,edx
-    mov ebx,10
-    div ebx
-
-    cmp edx,10
-    cmovb  ebx,[chr_0]
-    cmovae ebx,[chr_A]
-    add dh,bl
-    add dl,bl
-
-    mov [edi-2],dh
-    mov [edi-1],dl
-    sub edi,2
+    dec edi
+    call writeHalfByte
+    dec edi
+    call writeHalfByte
     ret
 
+writeHalfByte:
+    xor edx,edx
+    mov ebx,16
+    div ebx
+    cmp edx,10
+    jl  .writeDec
+    jge .writeHex
+    .writeDec:
+    add dl, 30h
+    mov [edi],dl
+    ret
+    .writeHex:
+    add dl, 37h
+    mov [edi],dl
+    ret
 
 ; writes value in eax as a hexadecimal string to [edi]
 DECL_FCN writeHex
     push ebx
     push edx
+    push esi
 
-    xor edx,edx
+    mov esi,edi  ; store original edi in esi
 
     cmp eax,0
-    jnz .loop
+    jnz .l1
 
+    ; Value is zero, so just write '0' to edi
     mov [edi],byte 30h ; '0'
     inc edi
     jmp .end
 
-    .loop:
-    ; divide value in eax by 10. Result stored as follows:
-    ;  eax => quotient  (eax / 10)
-    ;  edx => remainder (edx % 10)
-    mov ebx,10
-    div ebx
+    ; Otherwise:
 
-    ; Here's a bit of cleverness using the cmov instructions:
-    ; adds edx += '0' if edx < 10,
-    ;      edx += 'A' if edx >= 10.
-    cmp    edx,10
-    cmovb  ebx,[chr_0]
-    cmovae eax,[chr_A]
-    add edx,ebx
-
-    ; store byte + advance
-    mov [edi],dl
+    ; call writeHalfByte until eax == 0
+    .l1:
+    call writeHalfByte
     inc edi
+    cmp eax, 0
+    jg .l1
 
-    cmp eax,0
-    jnz .loop
+    ; Reverse output (since we actually wrote digits in reverse)
+    .l2:
+    dec edi
+    mov al,[edi]
+    mov [esi],al
+    inc esi
+    cmp edi,esi
+    jg .l2
+    mov edi,esi
 
     .end:
-    pop ebx
+    pop esi ; restore values
     pop edx
+    pop ebx
 END_FCN writeHex
 
+%define writeReg writeHex32
 
 ; dumpRegisters(): writes contents of rax,rbx,rcx,rdx to stdout.
 DECL_FCN dumpRegisters
@@ -217,35 +223,35 @@ DECL_FCN dumpRegisters
     ; write "eax = " to io_buffer
     mov esi,str_eax
     call writeStr
-    call writeHex32
+    call writeReg
 
     ; write "ebx = " to io_buffer
     mov esi,str_ebx
     call writeStr
     mov eax,ebx
-    call writeHex32
+    call writeReg
 
     ; write "ecx = " to io_buffer
     mov esi,str_ecx
     call writeStr
     mov eax,ecx
-    call writeHex32
+    call writeReg
 
     ; write "edx = " to io_buffer
     mov esi,str_edx
     call writeStr
     mov eax,edx
-    call writeHex32
+    call writeReg
 
     mov esi,str_esp
     call writeStr
     mov eax,esp
-    call writeHex32
+    call writeReg
 
     mov esi,str_ebp
     call writeStr
     mov eax,ebp
-    call writeHex32
+    call writeReg
 
     ; add '\n' character
     mov [edi],byte 10
