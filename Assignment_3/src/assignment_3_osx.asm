@@ -11,57 +11,13 @@ io_buffer: resb SCRATCH_MEM  ; reserve N bytes
 
 section .text
 start:
+    ; Setup I/O
+    mov edi, io_buffer     ; setup I/O
+
     ; Enter main()
     call _main
 
-    ; If main does not call exit() on its own, return w/ exit(-1).
-    push -1
-    call syscall_exit
-
-;
-; function main ()
-;
-_main:
-    mov edi, io_buffer
-
-    ; Set registers to execute (A + B) - (C + D)
-    ; (represented, conveniently, by rax = A, rbx = B, etc)
-
-    WRITE_STR {10,"This program calculates the result of (A + B) - (C + D)"}
-    WRITE_STR {10,"where  A = 7000,"}
-    WRITE_STR {10,"       B = 600,"}
-    WRITE_STR {10,"       C = 50,"}
-    WRITE_STR {10,"       D = 3",10,10}
-
-    mov eax,7000
-    mov ebx,600
-    mov ecx,50
-    mov edx,3
-    _breakpoint_setValues:   ; set a breakpoint here in lldb to inspect values.
-
-    WRITE_STR {"Set registers:          "}
-    call dumpRegisters
-    
-    ; First addition operation: A += B, C += D.
-    add eax,ebx
-    add ecx,edx
-    _breakpoint_addedValues: ; set a breakpoint here in lldb to inspect values.
-
-    WRITE_STR {"Added A += B, C += D:   "}
-    call dumpRegisters
-    
-    ; Second operation: A -= C.
-    sub eax,ecx
-    _breakpoint_done:        ; set a breakpoint here in lldb to inspect values.
-
-    WRITE_STR {"Added A -= C:           "}
-    call dumpRegisters
-
-    WRITE_STR {10,"Result: "}
-    call writeDecimal
-    mov [edi],byte 10     ; write eol
-    inc  edi
-
+    ; Print I/O
     sub  edi,io_buffer
     push edi
     push io_buffer
@@ -71,10 +27,74 @@ _main:
     ; exit(0) -- Uses bsd syscall convention.
     push 0
     call syscall_exit
+
+; WRITE_STR {string_literal} macro: 
+; Declares a local string literal (data section), and prints that string to dsi by calling writeStr.
+%macro WRITE_STR 1
+    section .data
+        %%str: db %1,0
+    section .text
+        mov esi,%%str
+        call writeStr
+%endmacro 
+
+; DECL_FCN fcn_name macro:
+; Declares the start of a function using the label fcn_name, and creates a esp/ebp stack frame.
+%macro DECL_FCN 1
+    %1: 
+        push ebp
+        mov  ebp,esp
+%endmacro
+
+; END_FCN fcn_name macro:
+; Declares the end of a function (fcn_name just included for readability).
+; Expands to instructions that exit the stack frame + returns (ret).
+%macro END_FCN 1
+    mov esp,ebp
+    pop ebp
     ret
+%endmacro
+
 ;
-; End main().
+; function main ()
 ;
+DECL_FCN(_main)
+    ; Set registers to execute (A + B) - (C + D)
+    ; (represented, conveniently, by rax = A, rbx = B, etc)
+    .prettyPrintProgramDescription:
+        WRITE_STR {10,"This program calculates the result of (A + B) - (C + D)"}
+        WRITE_STR {10,"where  A = 7000,"}
+        WRITE_STR {10,"       B = 600,"}
+        WRITE_STR {10,"       C = 50,"}
+        WRITE_STR {10,"       D = 3",10,10}
+
+    mov eax,7000
+    mov ebx,600
+    mov ecx,50
+    mov edx,3
+    _breakpoint_setValues:   ; set a breakpoint here in lldb to inspect values.
+        WRITE_STR {"Set registers:          "}
+        call dumpRegisters
+    
+    ; First addition operation: A += B, C += D.
+    add eax,ebx
+    add ecx,edx
+    _breakpoint_addedValues: ; set a breakpoint here in lldb to inspect values.
+        WRITE_STR {"Added A += B, C += D:   "}
+        call dumpRegisters
+    
+    ; Second operation: A -= C.
+    sub eax,ecx
+    _breakpoint_done:        ; set a breakpoint here in lldb to inspect values.
+        WRITE_STR {"Added A -= C:           "}
+        call dumpRegisters
+
+    .prettyPrintResults:
+        WRITE_STR {10,"Result: "}
+        call writeDecimal
+        mov [edi],byte 10     ; write eol
+        inc  edi    
+END_FCN _main
 
 ;
 ; System calls (uses i386 bsd conventions).
@@ -85,41 +105,19 @@ _main:
 syscall_exit:
     mov eax,1 ; syscall number
     int 0x80  ; bsd syscall interrupt
-
     ; Note: no ret b/c exit() kills the process and does not return.
-
 
 ; write (int fd, user_addr_t cbuf, user_size_t nbyte)
 syscall_write:
     mov eax,4 ; syscall number
-    int 0x80
+    int 0x80  ; bsd syscall interrupt
     ret
 
 ;
-; Helper functions + macros, etc.
+; Helper functions
 ;
 
-%macro WRITE_STR 1
-section .data
-    %%str: db %1,0
-section .text
-    mov esi,%%str
-    call writeStr
-%endmacro 
-
-
-%macro DECL_FCN 1
-%1: 
-    push ebp
-    mov  ebp,esp
-%endmacro
-%macro END_FCN 1
-    mov esp,ebp
-    pop ebp
-    ret
-%endmacro
-
-; writes a zero-terminated string from esi to edi.
+; Writes a zero-terminated string from esi to edi.
 DECL_FCN writeStr
     push eax
     xor eax,eax
@@ -137,10 +135,8 @@ DECL_FCN writeStr
     pop eax
 END_FCN writeStr
 
-
-; writes value in eax as a hexadecimal string to [edi]
+; Writes value in eax to edi as a hexadecimal string.
 DECL_FCN writeHex32
-
     push ebx
     push edx
 
@@ -154,9 +150,9 @@ DECL_FCN writeHex32
     pop edx
     pop ebx
     xor eax,eax
-
 END_FCN writeHex32
 
+; Helper function: writes the lower 256-bits of eax to edi.
 writeByte:
     dec edi
     call writeHalfByte
@@ -164,6 +160,7 @@ writeByte:
     call writeHalfByte
     ret
 
+; Helper function: writes the lower 16-bits of eax to edi.
 writeHalfByte:
     xor edx,edx
     mov ebx,16
@@ -180,8 +177,7 @@ writeHalfByte:
     mov [edi],dl
     ret
 
-
-; writes value in eax as a decimal string to [edi]
+; Writes value in eax to edi as a decimal string.
 DECL_FCN writeDecimal
     push ebx
     push edx
@@ -237,12 +233,13 @@ DECL_FCN writeDecimal
     pop ebx
 END_FCN writeHex
 
+; WRITE_REG <register>: calls writeHex32 using the passed in register.
 %macro WRITE_REG 1
     mov eax,%1
     call writeHex32
 %endmacro
 
-; dumpRegisters(): writes contents of rax,rbx,rcx,rdx to stdout.
+; dumpRegisters(): writes contents of eax,ebx,ecx,edx to edi.
 DECL_FCN dumpRegisters
     push eax
     push ebx
@@ -286,6 +283,4 @@ DECL_FCN dumpRegisters
     pop ebx
     pop eax
 END_FCN dumpRegisters
-
-
 
