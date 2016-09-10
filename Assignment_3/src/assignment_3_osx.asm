@@ -1,30 +1,24 @@
 
 global start
-
-; define stdout
-%define stdout 0
-
-; Scratch buffer used by I/O
-%define SCRATCH_MEM 4096
-section .bss
-io_buffer: resb SCRATCH_MEM  ; reserve N bytes
-
 section .text
 start:
     ; Setup I/O
-    mov edi, io_buffer     ; setup I/O
+    ; Note: rather than doing syscall writes for every I/O op, all of our I/O operations
+    ; (write, etc) actually just write to a temp buffer referenced by edi. Since we're only
+    ; doing limited I/O, this gets flushed at the end of our program (but could be flushed
+    ; at any point so long as edi gets reset).
+    ;
+    ; As such, any I/O operation is really just:
+    ;    mov [edi], <some byte>
+    ;    inc edi
+    ; 
+    ; Followed by call flushIO at some point.
+    ;
+    call resetIO  ; sets up edi (points to io_buffer)
+    call _main    ; enter main()
+    call flushIO  ; calls syscall_write w/ contents of edi + io_buffer
 
-    ; Enter main()
-    call _main
-
-    ; Print I/O
-    sub  edi,io_buffer
-    push edi
-    push io_buffer
-    push stdout
-    call syscall_write
-    
-    ; exit(0) -- Uses bsd syscall convention.
+    ; exit(0) (uses bsd syscall convention)
     push 0
     call syscall_exit
 
@@ -41,9 +35,9 @@ start:
 ; DECL_FCN fcn_name macro:
 ; Declares the start of a function using the label fcn_name, and creates a esp/ebp stack frame.
 %macro DECL_FCN 1
-    %1: 
-        push ebp
-        mov  ebp,esp
+%1: 
+    push ebp
+    mov  ebp,esp
 %endmacro
 
 ; END_FCN fcn_name macro:
@@ -58,7 +52,7 @@ start:
 ;
 ; function main ()
 ;
-DECL_FCN(_main)
+DECL_FCN _main
     ; Set registers to execute (A + B) - (C + D)
     ; (represented, conveniently, by rax = A, rbx = B, etc)
     .prettyPrintProgramDescription:
@@ -91,7 +85,7 @@ DECL_FCN(_main)
 
     .prettyPrintResults:
         WRITE_STR {10,"Result: "}
-        call writeDecimal
+        call writeDecimal     ; writes the value in eax (our result) as a decimal string
         mov [edi],byte 10     ; write eol
         inc  edi    
 END_FCN _main
@@ -116,6 +110,41 @@ syscall_write:
 ;
 ; Helper functions
 ;
+
+; define stdout
+%define stdout 0
+
+; Scratch buffer used by I/O
+%define SCRATCH_MEM_SIZE 4096
+section .bss
+io_buffer: resb SCRATCH_MEM_SIZE  ; reserve N bytes
+
+section .text
+
+DECL_FCN resetIO
+    mov edi,io_buffer
+END_FCN  resetIO
+
+DECL_FCN flushIO
+    ; Flush I/O (syscall write)
+    sub  edi,io_buffer    ; calculate num bytes in edi (edi - io_buffer)
+    jle  .skip            ; skip iff no bytes to write (size == 0 or size < 0)
+
+    ; clamp size to SCRATCH_MEM_SIZE
+    cmp edi,SCRATCH_MEM_SIZE
+    jle .noClamp
+    mov edi,SCRATCH_MEM_SIZE
+    .noClamp:
+
+    push edi              ; push size
+    push io_buffer        ; push &buffer[0]
+    push stdout           ; push stdout (0, in this case...?)
+    call syscall_write    ; syscall_write( file_descriptor, str_ptr, size )
+
+    .skip:
+    mov edi,io_buffer     ; reset I/O buffer
+END_FCN flushIO
+
 
 ; Writes a zero-terminated string from esi to edi.
 DECL_FCN writeStr
