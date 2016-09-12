@@ -1,9 +1,7 @@
-; Program Template           (Template.asm)
-
 ; Assignment 3:
 ; Program Description: Calculates (A + B) - (C + D); no I/O.
 ; Author: Seiji Emery (student: M00202623)
-; Creation Date: 9/17/16
+; Creation Date: 9/07/16
 ; Revisions: 
 ; Date:              Modified by:
 
@@ -15,16 +13,16 @@ ExitProcess PROTO, dwExitCode:DWORD
 
 .code
 main PROC
-    mov eax, 42
-    mov ebx, 1298
-    mov ecx, 1203
-    mov edx, 49
+    mov eax, 7000
+    mov ebx, 600
+    mov ecx, 50
+    mov edx, 3
 
     add eax,ebx
+    add ecx,edx
+
     sub eax,ecx
-    sub eax,edx
 
 	INVOKE ExitProcess,0
 main ENDP
-; (insert additional procedures here)
 END main

@@ -1,3 +1,19 @@
+; Assignment 3:
+; Program Description: 
+;   Calculates (A + B) - (C + D) using eax,ebx,ecx,edx.
+;   Includes I/O routines to print register state to stdout, and messages
+;   describing each operation and the final result. Also includes hooks to
+;   inspect registers / program state using lldb (_breakpoint_****** symbols).
+;
+; Target platform: osx, 32-bit.
+;   Uses posix syscalls (write, exit) using bsd 32-bit calling conventions.
+;   Should run on linux with minor modifications.
+;
+; Author: Seiji Emery (student: M00202623)
+; Creation Date: 9/07/16
+; Revisions: N/A (see git log)
+; Date:              Modified by:
+;
 
 global start
 section .text
@@ -260,7 +276,7 @@ DECL_FCN writeDecimal
     pop esi ; restore values
     pop edx
     pop ebx
-END_FCN writeHex
+END_FCN writeDecimal
 
 ; WRITE_REG <register>: calls writeHex32 using the passed in register.
 %macro WRITE_REG 1
