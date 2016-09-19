@@ -1,0 +1,22 @@
+
+# Set breakpoints
+break set -n breakpoint_setValues
+break set -n breakpoint_addedValues
+break set -n breakpoint_done
+
+run
+
+# READ REGISTERS after setting eax,ebx,ecx,edx from memory
+register read eax ebx ecx edx
+continue
+
+# READ VALUES after adding eax += ebx, ecx += edx
+register read eax ebx ecx edx
+continue
+
+# READ VALUES after adding eax -= ecx
+register read eax ebx ecx edx
+continue
+
+# And exit
+quit

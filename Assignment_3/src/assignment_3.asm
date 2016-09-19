@@ -9,19 +9,27 @@
 .model flat,stdcall
 .stack 4096
 ExitProcess PROTO, dwExitCode:DWORD
+
 .data
+varA SDWORD 7000
+varB SDWORD -600
+varC SDWORD 50
+varD SDWORD -3
+varResult SDWORD 0
+
 
 .code
 main PROC
-    mov eax, 7000
-    mov ebx, 600
-    mov ecx, 50
-    mov edx, 3
+    mov eax, [varA]
+    mov ebx, [varB]
+    mov ecx, [varC]
+    mov edx, [varD]
 
     add eax,ebx
     add ecx,edx
 
     sub eax,ecx
+    mov [varResult],eax
 
 	INVOKE ExitProcess,0
 main ENDP

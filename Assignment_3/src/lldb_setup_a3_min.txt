@@ -1,0 +1,7 @@
+break set -n breakpoint_setValues
+break set -n breakpoint_addedValues
+break set -n breakpoint_done
+break set -n start
+
+run
+watch set expression varResult

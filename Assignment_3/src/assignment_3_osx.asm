@@ -65,23 +65,28 @@ start:
     ret
 %endmacro
 
-;
-; function main ()
-;
+section .data ; Declare variables (note: these are memory locations, not constants)
+_varA: dd 7000
+_varB: dd -600
+_varC: dd 50
+_varD: dd -3
+_varResult: dd 0
+section .text
+
 DECL_FCN _main
     ; Set registers to execute (A + B) - (C + D)
     ; (represented, conveniently, by rax = A, rbx = B, etc)
     .prettyPrintProgramDescription:
         WRITE_STR {10,"This program calculates the result of (A + B) - (C + D)"}
         WRITE_STR {10,"where  A = 7000,"}
-        WRITE_STR {10,"       B = 600,"}
+        WRITE_STR {10,"       B = -600,"}
         WRITE_STR {10,"       C = 50,"}
-        WRITE_STR {10,"       D = 3",10,10}
+        WRITE_STR {10,"       D = -3",10,10}
 
-    mov eax,7000
-    mov ebx,600
-    mov ecx,50
-    mov edx,3
+    mov eax,[_varA]
+    mov ebx,[_varB]
+    mov ecx,[_varC]
+    mov edx,[_varD]
     _breakpoint_setValues:   ; set a breakpoint here in lldb to inspect values.
         WRITE_STR {"Set registers:          "}
         call dumpRegisters
@@ -99,6 +104,7 @@ DECL_FCN _main
         WRITE_STR {"Added A -= C:           "}
         call dumpRegisters
 
+    mov [_varResult],eax
     .prettyPrintResults:
         WRITE_STR {10,"Result: "}
         call writeDecimal     ; writes the value in eax (our result) as a decimal string
@@ -295,7 +301,7 @@ DECL_FCN dumpRegisters
     push ebp
     mov  ebp,esp
 
-    ; write "eax = " to io_buffer
+    ; write register values (calls writeHex32; see WRITE_REG impl)
     WRITE_STR {"eax = "}
     WRITE_REG eax
 
