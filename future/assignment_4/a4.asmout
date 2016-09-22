@@ -1,0 +1,75 @@
+
+_IntArray_reverse:
+    push ebx
+    mov ebx, esp
+    push esi
+    lea esi, [eax + INT_ARRAY_DATA_OFFSET]
+    push ecx
+    mov ecx, [eax + INT_ARRAY_SIZE_OFFSET]
+    push eax
+    mov eax, [eax + INT_ARRAY_ELEMENT_SIZE_OFFSET]
+
+    cmp ecx,0
+    jz .l1
+        dec ecx
+        cmp eax, 4
+        jnz .l2
+            push edi
+            mov edi, ecx
+            shr edi, 2
+            add edi, esi
+            mov ecx, 4
+            jmp .reverseLoop
+        .l2:
+        cmp eax, 2
+        jnz .l3
+            push edi
+            mov edi, ecx
+            shr edi, 1
+            add edi, esi
+            mov ecx, 2
+            jmp .reverseLoop
+        .l3:
+        cmp eax, 1
+        jnz .l1
+            push edi
+            mov edi, ecx
+            add edi, esi
+            mov ecx, 2
+            jmp .reverseLoop
+    .l1:
+    pop eax
+    pop ecx
+    pop esi
+section .data
+    .str1 "\nType error: invalid size for array element: 0x%h\n"
+section .text
+    push eax
+    push .str1
+    push stdout
+    call _fwritef
+    push dword -1
+    call _exit
+
+    .reverseLoop:
+        push ebx
+        cmp esi, edi
+        jge .l4
+            mov eax, 
+
+        .l4:
+    pop ebx
+    pop eax
+    pop ecx
+    pop esi
+    mov esp, ebx
+    pop ebx
+    ret
+
+
+
+
+
+
+
+
