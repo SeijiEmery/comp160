@@ -142,7 +142,7 @@ DECL_FCN writeHex16
     pop edx
     pop ebx
     xor eax,eax
-END_FCN writeHex32
+END_FCN writeHex16
 
 ; Writes value in eax to edi as a hexadecimal string.
 DECL_FCN writeHex8
@@ -156,7 +156,7 @@ DECL_FCN writeHex8
     pop edx
     pop ebx
     xor eax,eax
-END_FCN writeHex32
+END_FCN writeHex8
 
 
 ; Helper function: writes the lower 256-bits of eax to edi.

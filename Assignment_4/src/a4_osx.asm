@@ -14,9 +14,9 @@ _littleEndian: db 0,0,0,0
 %define INT_ARRAY_ELEMENT_SIZE_OFFSET 4
 %define INT_ARRAY_DATA_OFFSET 8
 _myArray:
-    .size:        dd 5
+    .size:        dd 7
     .elementSize: dd 2
-    .data:        dw 0x14ad, 0x2942, 0x1322, 0x2455, 0x1899
+    .data:        dw 0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff
 
 section .text
 DECL_FCN _main
@@ -43,9 +43,27 @@ DECL_FCN _main
     WRITE_EOL
     call flushIO
 
+    ; mov eax, _myArray
+    ; call IntArray_reverse
+
+    ; mov eax, _myArray
+    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 0]
+    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 8]
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 8], bx
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 0], dx
+
+    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 2]
+    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 6]
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 6], bx
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 2], dx
+
+    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 4]
+    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 4]
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 4], bx
+    ; mov [eax + INT_ARRAY_DATA_OFFSET + 4], dx
+
     mov eax, _myArray
     call IntArray_reverse
-
     WRITE_STR {"reversed:  "}
     call IntArray_write
     WRITE_EOL
@@ -103,17 +121,8 @@ DECL_FCN IntArray_write
     cmp ebx,2
     jz .writeInt16Array
     cmp ebx,1
-    jnz .typeError
-    jmp .writeInt8Array  ; workaround for 'short jump out of range' error
-
-    .typeError:
-        WRITE_EOL
-        WRITE_STR {"Type error: invalid size for array element: 0x"}
-        WRITE_HEX ebx
-        WRITE_EOL
-        call flushIO
-        push -1
-        call syscall_exit
+    jz .writeInt8Array
+    jmp .typeError
 
     %macro WRITE_COMMA 0
         mov [edi],   byte ','
@@ -160,6 +169,15 @@ DECL_FCN IntArray_write
         ; Write closing bracket, overwriting last ", " written.
         mov [edi-2], byte ' '
         mov [edi-1], byte ']'
+        jmp .end
+    .typeError:
+        WRITE_EOL
+        WRITE_STR {"Type error: invalid size for array element: 0x"}
+        WRITE_HEX ebx
+        WRITE_EOL
+        call flushIO
+        push -1
+        call syscall_exit
     .end:
     pop esi
     pop ebx
@@ -170,41 +188,91 @@ END_FCN IntArray_write
 ; Reverses integer array in-place in eax
 DECL_FCN IntArray_reverse
     push eax
-    push ebx
     push ecx
+    push edx
     push esi
+    push edi
 
+    lea esi, [eax + INT_ARRAY_DATA_OFFSET]
     mov ecx, [eax + INT_ARRAY_SIZE_OFFSET]
-    mov ebx, [eax + INT_ARRAY_ELEMENT_SIZE_OFFSET]
-    mov esi, eax
-    add esi, INT_ARRAY_DATA_OFFSET
+    mov eax, [eax + INT_ARRAY_ELEMENT_SIZE_OFFSET]
 
     cmp ecx, 0
-    jz .end
+    jz .end1
 
-    shl ecx,2   ; divide ecx by 2 so we iter N / 2 times
-
-    cmp ebx,4
+    cmp eax,4
     jz .reverseInt32Array
-    cmp ebx,2
+    cmp eax,2
     jz .reverseInt16Array
-    cmp ecx,1
-    jnz .typeError
-    jmp .reverseInt8Array
-
-    .typeError:
+    cmp eax,1
+    jz .reverseInt8Array
+    jmp .typeError
+    .end1:
         jmp .end
     .reverseInt32Array:
-        jmp .end
+        dec ecx
+        shl ecx, 2
+        mov edi, esi
+        add edi, ecx
+
+        .loop32:
+        cmp esi, edi
+        jge .end1
+        mov eax, [esi]
+        mov edx, [edi]
+        mov [esi], edx
+        mov [edi], eax
+        add esi, 4
+        sub edi, 4
+        jmp .loop32
     .reverseInt16Array:
-        jmp .end
+        dec ecx
+        shl ecx, 1
+        mov edi, esi
+        add edi, ecx
+
+        .loop16:
+        cmp esi, edi
+        jge .end
+        mov ax, [esi]
+        mov dx, [edi]
+        mov [esi], dx
+        mov [edi], ax
+        add esi, 2
+        sub edi, 2
+        jmp .loop16
+
     .reverseInt8Array:
-        jmp .end
+        dec ecx
+        mov edi, esi
+        add edi, ecx
+
+        .loop8:
+        cmp esi, edi
+        jge .end
+        mov al, [esi]
+        mov dl, [edi]
+        mov [esi], dl
+        mov [edi], al
+        inc esi
+        dec edi
+        jmp .loop8
+
+    .typeError:
+        pop edi
+        WRITE_EOL
+        WRITE_STR {"Type error: invalid size for array element: 0x"}
+        WRITE_HEX eax
+        WRITE_EOL
+        call flushIO
+        push -1
+        call syscall_exit
 
     .end:
+    pop edi
     pop esi
+    pop edx
     pop ecx
-    pop ebx
     pop eax
 END_FCN  IntArray_reverse
 
