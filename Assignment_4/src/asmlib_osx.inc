@@ -129,6 +129,36 @@ DECL_FCN writeHex32
     xor eax,eax
 END_FCN writeHex32
 
+; Writes value in eax to edi as a hexadecimal string.
+DECL_FCN writeHex16
+    push ebx
+    push edx
+
+    add edi,4
+    call writeByte
+    call writeByte
+    add edi,4
+
+    pop edx
+    pop ebx
+    xor eax,eax
+END_FCN writeHex32
+
+; Writes value in eax to edi as a hexadecimal string.
+DECL_FCN writeHex8
+    push ebx
+    push edx
+
+    add edi,2
+    call writeByte
+    add edi,2
+
+    pop edx
+    pop ebx
+    xor eax,eax
+END_FCN writeHex32
+
+
 ; Helper function: writes the lower 256-bits of eax to edi.
 writeByte:
     dec edi
@@ -214,6 +244,12 @@ END_FCN writeDecimal
 %macro WRITE_REG 1
     mov eax,%1
     call writeHex32
+%endmacro
+%define WRITE_HEX WRITE_REG
+
+%macro WRITE_EOL 0
+    mov [edi],byte 10
+    add edi,1
 %endmacro
 
 ; dumpRegisters(): writes contents of eax,ebx,ecx,edx to edi.
