@@ -14,7 +14,7 @@ main PROC
     ; Convert little endian to big endian
     mov eax, DWORD PTR [bigEndian]
     call convertEndian32
-    mov DWORD PTR [bigEndian], eax
+    mov DWORD PTR [littleEndian], eax
 
     ; Reverse array.
     mov esi, DWORD PTR myArray  ; load array pointer,
@@ -74,11 +74,11 @@ IntArray_reverse PROC
 
     ; Jump to different implementations based on array size.
     cmp ebx,4
-    jz .reverseInt32Array
+    jz reverseInt32Array
     cmp ebx,2
-    jz .reverseInt16Array
+    jz reverseInt16Array
     cmp ebx,1
-    jz .reverseInt8Array
+    jz reverseInt8Array
 
     ; Invalid argument
     mov esi,-1
@@ -90,9 +90,9 @@ IntArray_reverse PROC
         mov edi, esi
         add edi, ecx   ; mov edi, esi + (ecx - 1) * 4
 
-        .loop32:
+        loop32:
         cmp esi, edi   ; loop until esi >= edi
-        jge end1
+        jge end
         mov eax, [esi] ; swap values at esi, edi
         mov ebx, [edi]
         mov [esi], edx
