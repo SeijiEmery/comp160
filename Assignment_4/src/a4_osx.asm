@@ -1,3 +1,22 @@
+; Assignment 4:
+; Program Description:
+;   Performs two functions:
+;       – converts a 32-bit integer in bigEndian to littleEndian 
+;       – reverses a typed array of integers.
+;   Can be run in interactive mode (`make interactive` vs `make run`), during 
+;   which the array values, element size, and type can be changed in real time.
+;
+;   Uses an auxillary library, asmlib_osx.inc for i/o.
+;
+; Target platform: osx, 32-bit.
+;   Uses posix syscalls (write, exit) using bsd 32-bit calling conventions.
+;   Should run on linux with minor modifications.
+;
+; Author: Seiji Emery (student: M00202623)
+; Creation Date: 9/22/16
+; Revisions: N/A (see git log)
+; Date:              Modified by:
+;
 
 ; tell asmlib to create a start procedure that calls _main and sets up I/O
 %define ASMLIB_SETUP_MAIN 
@@ -10,13 +29,14 @@ _bigEndian:    db 12h,34h,56h,78h
 _littleEndian: db 0,0,0,0
 
 
+; Data structure for array instance
 %define INT_ARRAY_SIZE_OFFSET 0
 %define INT_ARRAY_ELEMENT_SIZE_OFFSET 4
 %define INT_ARRAY_DATA_OFFSET 8
 _myArray:
-    .size:        dd 7
-    .elementSize: dd 2
-    .data:        dw 0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff
+    .size:        dd 16     ; array length in # of elements (masm TYPE())
+    .elementSize: dd 2      ; size of array elements, in bytes (masm LENGTHOF())
+    .data:        dw 0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff, 0x0123, 0x4567, 0x89AB, 0xCDEF
 
 section .text
 DECL_FCN _main
@@ -37,34 +57,22 @@ DECL_FCN _main
     WRITE_EOL
     call flushIO
 
-    WRITE_STR {"array:     "}
+    WRITE_STR {"array:          "}
     mov eax, _myArray
     call IntArray_write
     WRITE_EOL
     call flushIO
 
-    ; mov eax, _myArray
-    ; call IntArray_reverse
-
-    ; mov eax, _myArray
-    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 0]
-    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 8]
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 8], bx
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 0], dx
-
-    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 2]
-    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 6]
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 6], bx
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 2], dx
-
-    ; mov bx, [eax + INT_ARRAY_DATA_OFFSET + 4]
-    ; mov dx, [eax + INT_ARRAY_DATA_OFFSET + 4]
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 4], bx
-    ; mov [eax + INT_ARRAY_DATA_OFFSET + 4], dx
+    mov eax, _myArray
+    call IntArray_reverse
+    WRITE_STR {"reversed:       "}
+    call IntArray_write
+    WRITE_EOL
+    call flushIO
 
     mov eax, _myArray
     call IntArray_reverse
-    WRITE_STR {"reversed:  "}
+    WRITE_STR {"reversed again: "}
     call IntArray_write
     WRITE_EOL
     call flushIO
@@ -73,7 +81,7 @@ END_FCN _main
 
 
 ; Converts a 32-bit big endian integer to little endian, and vice versa
-; Argument is passed in eax, and returned in eax.
+; Argument is passed as an address in eax, and returned as a value in eax.
 DECL_FCN convertEndian32
     push ebx
     xor ebx,ebx
@@ -185,7 +193,7 @@ DECL_FCN IntArray_write
     pop eax
 END_FCN IntArray_write
 
-; Reverses integer array in-place in eax
+; Reverses integer array in-place. Argument passed as an array in eax.
 DECL_FCN IntArray_reverse
     push eax
     push ecx
@@ -225,6 +233,7 @@ DECL_FCN IntArray_reverse
         add esi, 4
         sub edi, 4
         jmp .loop32
+
     .reverseInt16Array:
         dec ecx
         shl ecx, 1

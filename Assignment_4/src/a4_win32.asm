@@ -1,3 +1,17 @@
+; Assignment 4:
+; Program Description:
+;   Performs two functions:
+;       – converts a 32-bit integer in bigEndian to littleEndian 
+;       – reverses a typed array of integers (uses MASM TYPE, LENGTHOF, etc).
+;
+; Target platform: windows, 32-bit.
+;   Must use a debugger, as this program does no i/o.
+;
+; Author: Seiji Emery (student: M00202623)
+; Creation Date: 9/24/16
+; Revisions: N/A (see git log)
+; Date:              Modified by:
+;
 
 .386
 .model flat,stdcall
@@ -12,14 +26,14 @@ myArray      WORD 0x0011,0x2233,0x4455,0x6677,0x8899,0xAABB
 .code
 main PROC
     ; Convert little endian to big endian
-    mov eax, DWORD PTR [bigEndian]
+    mov eax, OFFSET bigEndian
     call convertEndian32
     mov DWORD PTR [littleEndian], eax
 
     ; Reverse array.
-    mov esi, DWORD PTR myArray  ; load array pointer,
-    mov ebx, TYPE myArray       ; size of array elements,
-    mov ecx, SIZEOF myArray     ; and # of array elements
+    mov esi, OFFSET   myArray     ; load array pointer,
+    mov ebx, TYPE     myArray     ; size of array elements,
+    mov ecx, LENGTHOF myArray     ; and # of array elements
 
     ; Call IntArray_reverse, which in our win32 impl, will take
     ; direct arguments in esi, ebx, ecx. 
@@ -69,7 +83,7 @@ IntArray_reverse PROC
     push edi
 
     cmp ecx,1   ; Skip the following if array has only 1 or 0 elements:
-    jle end     ; an empty array cannot be reversed, and an array w/ only one
+    jle end1     ; an empty array cannot be reversed, and an array w/ only one
                 ; element effectively already is reversed.
 
     ; Jump to different implementations based on array size.
@@ -82,7 +96,7 @@ IntArray_reverse PROC
 
     ; Invalid argument
     mov esi,-1
-    jmp .end
+    jmp end1
 
     reverseInt32Array:
         dec ecx
@@ -92,7 +106,7 @@ IntArray_reverse PROC
 
         loop32:
         cmp esi, edi   ; loop until esi >= edi
-        jge end
+        jge end1
         mov eax, [esi] ; swap values at esi, edi
         mov ebx, [edi]
         mov [esi], edx
@@ -109,7 +123,7 @@ IntArray_reverse PROC
 
         loop16:
         cmp esi, edi  ; loop until esi >= edi
-        jge end
+        jge end1
         mov ax, [esi] ; swap values at esi, edi
         mov bx, [edi]
         mov [esi], bx
@@ -125,7 +139,7 @@ IntArray_reverse PROC
 
         loop8:
         cmp esi, edi  ; loop until esi >= edi
-        jge end
+        jge end1
         mov al, [esi] ; swap values at esi, edi
         mov bl, [edi]
         mov [esi], bl
@@ -134,7 +148,7 @@ IntArray_reverse PROC
         dec edi
         jmp loop8
 
-    end:
+    end1:
     pop edi
     pop esi     ; Restore registers
     pop ecx

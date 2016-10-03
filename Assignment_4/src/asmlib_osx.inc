@@ -1,5 +1,29 @@
+;
+; asmlib_osx.inc
+;
+; This is a small library (work in progress) that provides 32-bit system calls,
+; namely exit() and write(), and various string writing functions with an internal
+; text buffer.
+;
+; The system calls are specific to osx 32-bit (and bsd), but the rest of the code
+; is fairly portable. Will need to rewrite for 64-bit code.
+;
+; Note: this library uses edi for program output. Code that uses this register
+; should save its value between io calls, or do:
+;   call flushIO
+;   other code...
+;   call resetIO
+;
+; We also provide a default start procedure that calls _main + sets up / flushes io
+; if ASMLIB_SETUP_MAIN is defined.
+;
 
+;
 ; Macros, etc
+;
+
+; Define size of the text buffer used for stdout. 
+; Writing more than this many bytes between calls to flushIO will overflow.
 %define IO_BUFFER_SIZE 4096
 
 ; WRITE_STR {string_literal} macro: 
