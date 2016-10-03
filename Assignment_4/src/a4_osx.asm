@@ -5,8 +5,10 @@
 ;       – reverses a typed array of integers.
 ;   Can be run in interactive mode (`make interactive` vs `make run`), during 
 ;   which the array values, element size, and type can be changed in real time.
+;   (program will be re-built + re-run, but results will appear instantaneously)
 ;
 ;   Uses an auxillary library, asmlib_osx.inc for i/o.
+;   Note: this is just the helper routines from assignment 3.
 ;
 ; Target platform: osx, 32-bit.
 ;   Uses posix syscalls (write, exit) using bsd 32-bit calling conventions.
