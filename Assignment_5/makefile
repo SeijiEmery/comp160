@@ -15,7 +15,7 @@ run: build/a5
 build/a5: build/a5.o
 	$(LD) -o $@ $<
 build/a5.o: src/a5_osx.asm
-	$(NASM) -o $@ $<
+	$(NASM) -o $@ $< -I ../asmlib/src/
 
 along32: build/along32.lib
 build/along32.lib: build/along32.o
