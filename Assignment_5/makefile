@@ -16,3 +16,9 @@ build/a5: build/a5.o
 	$(LD) -o $@ $<
 build/a5.o: src/a5_osx.asm
 	$(NASM) -o $@ $<
+
+along32: build/along32.lib
+build/along32.lib: build/along32.o
+	$(LD) -static -o $@ $<
+build/along32.o: ../Along32/src/Along32.asm
+	$(NASM) -o $@ $< -I ../Along32/src/
