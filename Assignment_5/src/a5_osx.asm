@@ -12,14 +12,82 @@
 ;
 
 ; tell asmlib to create a start procedure that calls _main and sets up I/O
-%define ASMLIB_SETUP_MAIN 
-%include "src/asmlib_osx.inc"
-
+; %define ASMLIB_SETUP_MAIN 
+%include "osx32/asmlib.inc"
 section .data
-
 section .text
+
+global start
+start:
+    call _main
+    push 0
+    mov eax, 1
+    int 0x80
+
 DECL_FCN _main
-    WRITE_STR {"Hello, Assignment 5!",10}
+    ; CALL_SYSCALL_EXIT -1
+    ; mov rax, 10
+    ; CALL_SYSCALL_EXIT -1
+
+    section .data
+        str01: db "Hello, Assignment 5!", 10
+        .len: equ $ - str01
+    section .text
+        ; WRITE_STRZ str01
+        ; CALL_SYSCALL_WRITE STDOUT, str01, 22
+        push dword str01.len
+        push dword str01
+        push dword 1
+        mov eax, 4
+        sub esp, 4
+        int 0x80
+
+        CALL_SYSCALL_WRITE STDOUT, str01, str01.len
+        CALL_SYSCALL_EXIT  -1
+
+        ; sub esp, 16
+        ; mov [esp-0xC], dword str01.len
+        ; mov [esp-0x8], dword str01
+        ; mov [esp-0x4], dword STDOUT
+        ; mov [esp-0x0], dword STDOUT
+        ; mov eax, 4
+        ; int 0x80
+        ; add esp, 16
+
+        ; sub esp, 16
+        ; mov [esp-0x0], dword str01.len
+        ; mov [esp-0x0], dword str01
+        ; mov [esp-0x4], dword STDOUT
+        ; mov [esp-0x8], dword STDOUT
+        ; mov eax, 4
+        ; int 0x80
+        ; add esp, 16
+
+
+
+        push dword 10
+        push dword 9
+        push dword 8
+        push dword 7
+        push dword 6
+
+        push dword -1
+        push dword 0
+        sub esp, 4
+        mov eax, 1
+        int 0x80
+
+
+    CALL_SYSCALL_EXIT 0
+
+    mov edi, g_stdout_buffer
+    WRITE_STR_LIT {"Hello, Assignment 5!", 10}
+    sub edi, g_stdout_buffer
+    CALL_SYSCALL_WRITE STDOUT, g_stdout_buffer, edi
+
+    CALL_SYSCALL_EXIT 0
+    mov edi, 0
+    ; WRITE_STR_LIT {"Hello, Assignment 5!",10}
     call flushIO
 
     ; call dumpRegisters
@@ -45,14 +113,15 @@ DECL_FCN _main
             call RandRange
             push eax
 
-            WRITE_HEX ecx
+            WRITE_HEX_N ecx, 4
+            ; WRITE_HEX_32 ecx
 
             push ecx
             ; call writeDecimal
             pop ecx
             ; WRITE_HEX eax
 
-            WRITE_STR ", "
+            WRITE_STR_LIT ", "
             ; WRITE_EOL
             pop eax
             loop .l2
@@ -61,15 +130,17 @@ DECL_FCN _main
         call flushIO
         pop ecx
 
-        WRITE_HEX ecx
+        WRITE_HEX_N ecx, 4
+        ; WRITE_HEX_32 ecx
         sub ecx, 0x100
-        WRITE_HEX ecx
+        ; WRITE_HEX_32 ecx
+        WRITE_HEX_N ecx, 4
 
         jg .l1
 END_FCN _main
 
 section .data
-    lcg_seed: dd 575366210393654
+    lcg_seed: dd 5793654
 
 section .text
 DECL_FCN RandRange
@@ -100,13 +171,4 @@ DECL_FCN LCG_NextRand
     add eax, 12345
     and eax, 0x7fffffff
 END_FCN LCG_NextRand
-
-
-
-
-
-
-
-
-
 
