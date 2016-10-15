@@ -71,6 +71,22 @@ elif version('osx', 'x64'):
 else:
     warn_unsupported_version("Missing platform version for {version.os}, {version.arch}")
 
+
+if (version('osx') or version('linux')) and (version('x86') or version('x64')):
+    define('platform_suffix', '{version.os}_{version.arch}')
+elif version('windows', 'x86'):
+    define('platform_suffix', 'win_32')
+elif version('windows', 'x64'):
+    define('platform_suffix', 'win_64')
+else:
+    warn_unsupported_version("Invalid platform version for os={version.os}, arch={version.arch}")
+
+if version('osx'):
+    define('asm_ext', 's')
+else:
+    define('asm_ext', 'asm')
+
+
 if version('nasm'):
     define('macros.inc', '{asmlib_dir}/src/macros_{version.asm}_{version.arch}.inc')
     define('io.inc',     '{asmlib_dir}/src/io_{version.asm}_{version.arch}.inc')
@@ -128,6 +144,15 @@ if version('nasm'):
         .build_action('debug', chain(make_target, debug_target_lldb('a4_debug_script.lldb')), deps='a4_debug_script.lldb')
         .build_action('auto_debug', chain(make_target, debug_target_lldb('a4_debug_script.lldb', 'a4_auto_run.lldb')), 
             deps=['a4_debug_script.lldb', 'a4_auto_run.lldb'])
+
+def chain (*fcns):
+    def apply (*args, **kwargs):
+        return reduce(lambda a, f: a and f(*args, **kwargs), fcns, True)
+    return apply
+
+def chain (*fcns):
+    return lambda *args, **kwargs: reduce(lambda a, f: a and f(*args, **kwargs), fcns, True)
+
 
 
 
