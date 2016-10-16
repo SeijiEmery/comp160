@@ -377,6 +377,8 @@ DECL_FCN writeDecimal
 
     pop esi        ; restore start ptr (esi) and save end ptr (edi)
     push edi
+    dec edi        ; must move back 1 for loop (normally, edi points to the 
+                   ; _next_ chr, but here we want it to point to the last written chr)
     .reverseDigits:
         cmp esi, edi    ; until esi >= edi:
         jge .endReverse

@@ -83,6 +83,10 @@ test_basic_output:
     WRITE_DEC dword 9
     TEST_IO -1, "  <invalid advance>"
 
+    WRITE_STR_LIT {10,"WRITE_DEC 0:    "}
+    WRITE_DEC dword 0
+    TEST_IO -1, "  <invalid advance>"
+
     WRITE_STR_LIT {10,"WRITE_DEC 1:    "}
     WRITE_DEC dword 1
     TEST_IO -1, "  <invalid advance>"
