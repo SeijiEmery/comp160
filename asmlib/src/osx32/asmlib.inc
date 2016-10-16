@@ -164,7 +164,7 @@ section .text
 %macro WRITE_DEC 1
     push eax
     mov eax, %1
-    call writeDecimal
+    call writeDecimal32
     pop eax
 %endmacro
 
@@ -354,9 +354,16 @@ DECL_FCN writeAsciiStr
     pop eax
 END_FCN writeAsciiStr
 
-; writeDecimal( eax value, edi out_buffer )
+; writeDecimal32( eax value, edi out_buffer )
 ;   does not preserve eax (use WRITE_DEC for register preservation)
-DECL_FCN writeDecimal
+DECL_FCN writeDecimal32
+    test eax, 0x80000000     ; Handle negative numbers:
+    jz .isPositive
+        xor eax, 0xffffffff
+        inc eax
+        mov [edi], byte 45          ; '-'
+        inc edi
+    .isPositive:
     push ebx
     push edx
     push esi
@@ -403,6 +410,6 @@ DECL_FCN writeDecimal
     pop esi
     pop edx
     pop ebx
-END_FCN writeDecimal
+END_FCN writeDecimal32
 
 

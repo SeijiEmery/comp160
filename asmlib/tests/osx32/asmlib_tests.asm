@@ -105,11 +105,11 @@ test_basic_output:
 
     WRITE_STR_LIT {10,"WRITE_DEC -1:   "}
     WRITE_DEC dword -1
-    TEST_IO -1, "  <invalid advance>"
+    TEST_IO -2, "  <invalid advance>"
 
     WRITE_STR_LIT {10,"WRITE_DEC -90:  "}
     WRITE_DEC dword -90
-    TEST_IO -2, "  <invalid advance>"
+    TEST_IO -3, "  <invalid advance>"
 
     WRITE_STR_LIT {10,"WRITE_HEX_8 0x0:        "}
     WRITE_HEX_8 0x0
