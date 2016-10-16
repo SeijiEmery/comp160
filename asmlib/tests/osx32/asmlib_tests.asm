@@ -66,7 +66,7 @@ test_sanity:
 %endmacro
 
 test_basic_output:
-    WRITE_STR_LIT {10,"Testing basic I/O",10}
+    WRITE_STR_LIT {10,"Testing write functions (no asmlib I/O)",10}
 
     mov edi, io_scratch_buffer
     mov ecx, edi
@@ -175,55 +175,57 @@ test_basic_output:
     WRITE_HEX_64 -1
     TEST_IO -2, "  <>"
 
+    section .data
+        str01: db "Hello, World!",0
+        .len: equ $ - str01 - 1
+        str02: db "foo",0
+        .len: equ $ - str02 - 1
+        str03: db "",0
+        .len: equ $ - str03 - 1
+    section .text
+        WRITE_STR_LIT {10,10,"String test 01:"}
+        WRITE_STR_LIT {10,"writeAsciiStr:  "}
+        mov esi, str01
+        mov ecx, str01.len
+        call writeAsciiStr
+        TEST_IO -str01.len, " <>"
 
+        WRITE_STR_LIT {10,"writeAsciiStrz: "}
+        mov esi, str01
+        call writeAsciiStrz
+        TEST_IO -str01.len, " <>"
 
+        WRITE_STR_LIT {10,10,"String test 02:"}
+        WRITE_STR_LIT {10,"writeAsciiStr:  "}
+        mov esi, str02
+        mov ecx, str02.len
+        call writeAsciiStr
+        TEST_IO -str02.len, " <>"
 
-section .data
-    str01: db "Hello, World!",0
-    .len: equ $ - str01 - 1
-    str02: db "foo",0
-    .len: equ $ - str02 - 1
-    str03: db "",0
-    .len: equ $ - str03 - 1
-section .text
-    WRITE_STR_LIT {10,10,"String test 01:"}
-    WRITE_STR_LIT {10,"writeAsciiStr:  "}
-    mov esi, str01
-    mov ecx, str01.len
-    call writeAsciiStr
-    TEST_IO -str01.len, " <>"
+        WRITE_STR_LIT {10,"writeAsciiStrz: "}
+        mov esi, str02
+        call writeAsciiStrz
+        TEST_IO -str02.len, " <>"
 
-    WRITE_STR_LIT {10,"writeAsciiStrz: "}
-    mov esi, str01
-    call writeAsciiStrz
-    TEST_IO -str01.len, " <>"
+        WRITE_STR_LIT {10,10,"String test 03:"}
+        WRITE_STR_LIT {10,"writeAsciiStr:  "}
+        mov esi, str03
+        mov ecx, str03.len
+        call writeAsciiStr
+        TEST_IO -str03.len, " <>"
 
-    WRITE_STR_LIT {10,10,"String test 02:"}
-    WRITE_STR_LIT {10,"writeAsciiStr:  "}
-    mov esi, str02
-    mov ecx, str02.len
-    call writeAsciiStr
-    TEST_IO -str02.len, " <>"
+        WRITE_STR_LIT {10,"writeAsciiStrz: "}
+        mov esi, str03
+        call writeAsciiStrz
+        TEST_IO -str03.len, " <>"
 
-    WRITE_STR_LIT {10,"writeAsciiStrz: "}
-    mov esi, str02
-    call writeAsciiStrz
-    TEST_IO -str02.len, " <>"
-
-    WRITE_STR_LIT {10,10,"String test 03:"}
-    WRITE_STR_LIT {10,"writeAsciiStr:  "}
-    mov esi, str03
-    mov ecx, str03.len
-    call writeAsciiStr
-    TEST_IO -str03.len, " <>"
-
-    WRITE_STR_LIT {10,"writeAsciiStrz: "}
-    mov esi, str03
-    call writeAsciiStrz
-    TEST_IO -str03.len, " <>"
+    WRITE_STR_LIT {10}
     ret
 
 test_syscall_write_contract:
+    WRITE_STR_LIT {10,"testing syscall write",10}
+
+
     mov ebx, esp
     ret
 
