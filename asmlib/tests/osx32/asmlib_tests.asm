@@ -111,8 +111,116 @@ test_basic_output:
     WRITE_DEC dword -90
     TEST_IO -2, "  <invalid advance>"
 
+    WRITE_STR_LIT {10,"WRITE_HEX_8 0x0:        "}
+    WRITE_HEX_8 0x0
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_8 0x1:        "}
+    WRITE_HEX_8 0x1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_8 0x123098:   "}
+    WRITE_HEX_8 0x123098
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_8 -0x1:       "}
+    WRITE_HEX_8 -1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_16 0x0:       "}
+    WRITE_HEX_16 0x0
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_16 0x1:       "}
+    WRITE_HEX_16 0x1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_16 0x123098:  "}
+    WRITE_HEX_16 0x123098
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_16 -0x1:      "}
+    WRITE_HEX_16 -1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_32 0x0:       "}
+    WRITE_HEX_32 0x0
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_32 0x1:       "}
+    WRITE_HEX_32 0x1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_32 0x123098:  "}
+    WRITE_HEX_32 0x123098
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_32 -0x1:      "}
+    WRITE_HEX_32 -1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_64 0x0:       "}
+    WRITE_HEX_64 0x0
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_64 0x1:       "}
+    WRITE_HEX_64 0x1
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_64 0x123098:  "}
+    WRITE_HEX_64 0x123098
+    TEST_IO -2, "  <>"
+
+    WRITE_STR_LIT {10,"WRITE_HEX_64 -0x1:      "}
+    WRITE_HEX_64 -1
+    TEST_IO -2, "  <>"
 
 
+
+
+section .data
+    str01: db "Hello, World!",0
+    .len: equ $ - str01 - 1
+    str02: db "foo",0
+    .len: equ $ - str02 - 1
+    str03: db "",0
+    .len: equ $ - str03 - 1
+section .text
+    WRITE_STR_LIT {10,10,"String test 01:"}
+    WRITE_STR_LIT {10,"writeAsciiStr:  "}
+    mov esi, str01
+    mov ecx, str01.len
+    call writeAsciiStr
+    TEST_IO -str01.len, " <>"
+
+    WRITE_STR_LIT {10,"writeAsciiStrz: "}
+    mov esi, str01
+    call writeAsciiStrz
+    TEST_IO -str01.len, " <>"
+
+    WRITE_STR_LIT {10,10,"String test 02:"}
+    WRITE_STR_LIT {10,"writeAsciiStr:  "}
+    mov esi, str02
+    mov ecx, str02.len
+    call writeAsciiStr
+    TEST_IO -str02.len, " <>"
+
+    WRITE_STR_LIT {10,"writeAsciiStrz: "}
+    mov esi, str02
+    call writeAsciiStrz
+    TEST_IO -str02.len, " <>"
+
+    WRITE_STR_LIT {10,10,"String test 03:"}
+    WRITE_STR_LIT {10,"writeAsciiStr:  "}
+    mov esi, str03
+    mov ecx, str03.len
+    call writeAsciiStr
+    TEST_IO -str03.len, " <>"
+
+    WRITE_STR_LIT {10,"writeAsciiStrz: "}
+    mov esi, str03
+    call writeAsciiStrz
+    TEST_IO -str03.len, " <>"
     ret
 
 test_syscall_write_contract:

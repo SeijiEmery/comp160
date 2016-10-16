@@ -111,19 +111,19 @@
 %endmacro
 
 %macro WRITE_HEX_64 1
-    WRITE_HEX_N %1 8
+    WRITE_HEX_N %1, 8
 %endmacro
 
 %macro WRITE_HEX_32 1
-    WRITE_HEX_N %1 4
+    WRITE_HEX_N %1, 4
 %endmacro
 
 %macro WRITE_HEX_16 1
-    WRITE_HEX_N %1 2
+    WRITE_HEX_N %1, 2
 %endmacro
 
 %macro WRITE_HEX_8 1
-    WRITE_HEX_N %1 1
+    WRITE_HEX_N %1, 1
 %endmacro
 
 %macro WRITE_EOL 0
