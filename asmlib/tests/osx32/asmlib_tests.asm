@@ -35,7 +35,7 @@ section .data
 section .text
 ioWrite:
     sub edi, io_scratch_buffer
-    CALL_SYSCALL_WRITE STDOUT, io_scratch_buffer, edi
+    SYSCALL_WRITE STDOUT, io_scratch_buffer, edi
     mov edi, io_scratch_buffer
     ret
 
@@ -43,19 +43,20 @@ ioWrite:
 ; Unit tests
 ;
 
-runAllTests:
+DECL_FCN runAllTests
     call test_sanity
     call test_basic_output
     call test_syscall_write_contract
-    ret
+    WRITE_STR_LIT{10,"all tests ok...?",10}
+END_FCN runAllTests
 
-test_sanity:
+DECL_FCN test_sanity
     WRITE_STR_LIT {10,"Testing sanity. If this message does not appear, something broke.",10}
     mov ebx, 2
     add ebx, 2
     ASSERT_EQ ebx, 4, {"This should pass",10}
     ASSERT_EQ ebx, 5, {"This should fail",10}
-    ret
+END_FCN test_sanity
 
 ; Write I/O + assert that edi was advanced N bytes
 %macro TEST_IO 2
@@ -65,7 +66,7 @@ test_sanity:
     mov ecx, edi
 %endmacro
 
-test_basic_output:
+DECL_FCN test_basic_output
     WRITE_STR_LIT {10,"Testing write functions (no asmlib I/O)",10}
 
     mov edi, io_scratch_buffer
@@ -220,14 +221,49 @@ test_basic_output:
         TEST_IO -str03.len, " <>"
 
     WRITE_STR_LIT {10}
-    ret
+END_FCN test_basic_output
 
-test_syscall_write_contract:
-    WRITE_STR_LIT {10,"testing syscall write",10}
+DECL_FCN test_syscall_write_contract
+    WRITE_STR_LIT {10,"testing contract for syscall write",10}
 
+    mov ecx, 16
+    mov edx, esp
+    inc ecx
+    .testLoop:
+        sub ecx, 1
+        jle .endLoop
+        sub esp, 1
 
-    mov ebx, esp
-    ret
+        WRITE_STR_LIT {10, "stack offset: "}
+        ; mov eax, edx
+        ; sub eax, esp
+        mov edi, io_scratch_buffer
+        WRITE_DEC esp
+        WRITE_CHR ' '
+        WRITE_DEC ecx
+        WRITE_CHR ' '
+        call ioWrite
+
+        mov ebx, esp
+        SYSCALL_WRITE STDOUT, str01, str01.len
+        ; CALL_SYSCALL_WRITE STDOUT, str01, str01.len
+        sub ebx, esp
+        cmp ebx, 0
+        jz .test01_ok
+            pushad
+            mov edi, io_scratch_buffer
+            WRITE_STR_LIT {10, "Stack contract failed:  "}
+            WRITE_0x
+            WRITE_HEX_32 ebx
+            WRITE_EOL
+            call ioWrite
+            popad
+        .test01_ok:
+        jmp .testLoop
+    .endLoop:
+
+    WRITE_STR_LIT{10,"done",10}
+END_FCN test_syscall_write_contract
 
 
 

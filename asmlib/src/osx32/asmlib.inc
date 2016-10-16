@@ -56,45 +56,76 @@
 ; Note: these use a 16-byte aligned stack, apparently:
 ; https://filippo.io/making-system-calls-from-assembly-in-mac-os-x/
 ;
+
+%macro PRE_EXEC_SYSCALL 0
+    push ebp
+    mov ebp, esp
+    and esp, 0xffffffff ; advance to next 16-byte boundary
+%endmacro
+
 %macro EXEC_SYSCALL 1
     mov eax, %1
     int 0x80
+    mov esp, ebp
+    pop ebp
 %endmacro
 
-%macro SYSCALL_WRITE 3
-    ; push ebp
-    ; mov ebp, esp
-    and esp, 0xfffffff0  ; advance to next 16-byte boundary
-    ; push %3 
-    ; push %2
-    ; push %1
-    ; ; sub esp, 4
-    ; EXEC_SYSCALL 1
-    ; mov esp, ebp
-    ; pop ebp
-%endmacro
-
-
-
-
-%macro CALL_SYSCALL_EXIT 1
-    ; push esp
-    ; and esp, 
+; void exit(int rval);
+%macro SYSCALL_EXIT 1
+    PRE_EXEC_SYSCALL
     push %1
-    sub esp, 4    ; align to 8-byte boundary...?! (note: seems to be 8 bytes, not 16 on macos 10.11)
+    sub esp, 4
+    ; push %1
+    ; sub esp, 4
     EXEC_SYSCALL 1
-    add esp, 8
 %endmacro
 
 ; user_ssize_t write(int fd, user_addr_t cbuf, user_size_t nbyte)
-%macro CALL_SYSCALL_WRITE 3
+%macro SYSCALL_WRITE 3
+    PRE_EXEC_SYSCALL
     push %3
     push %2
     push %1
-    sub esp, 4      ; align to 16-byte boundary
+    sub esp, 4
     EXEC_SYSCALL 4
-    add esp, 16
 %endmacro
+; %macro SYSCALL_WRITE 3
+;     push ebp
+;     mov ebp, esp
+;     and esp, 0xfffffff0  ; advance to next 16-byte boundary
+;     push %3 
+;     push %2
+;     push %1
+;     sub esp, 4
+;     EXEC_SYSCALL 4
+;     mov esp, ebp
+;     pop ebp
+; %endmacro
+
+%define CALL_SYSCALL_EXIT SYSCALL_EXIT
+%define CALL_SYSCALL_WRITE SYSCALL_WRITE
+
+%undef PRE_EXEC_SYSCALL
+%undef EXEC_SYSCALL
+
+; %macro CALL_SYSCALL_EXIT 1
+;     ; push esp
+;     ; and esp, 
+;     push %1
+;     sub esp, 4    ; align to 8-byte boundary...?! (note: seems to be 8 bytes, not 16 on macos 10.11)
+;     EXEC_SYSCALL 1
+;     add esp, 8
+; %endmacro
+
+; ; user_ssize_t write(int fd, user_addr_t cbuf, user_size_t nbyte)
+; %macro CALL_SYSCALL_WRITE 3
+;     push %3
+;     push %2
+;     push %1
+;     sub esp, 4      ; align to 16-byte boundary
+;     EXEC_SYSCALL 4
+;     add esp, 16
+; %endmacro
 
 
 ;
@@ -135,6 +166,11 @@
     mov [edi+0], BYTE 48
     mov [edi+1], BYTE 120
     add edi, 2
+%endmacro
+
+%macro WRITE_CHR 1
+    mov [edi], byte %1
+    inc edi
 %endmacro
 
 %macro WRITE_STR 2

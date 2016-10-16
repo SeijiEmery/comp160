@@ -13,4 +13,4 @@ build/asmlib_tests.o: asmlib_tests.asm
 clean:
 	rm -f build/*
 interactive:
-	when-changed -rs "asmlib_tests.asm" "../../src/osx32/" -c "clear; make run"
+	when-changed -rs "asmlib_tests.asm" "../../src/osx32/asmlib.inc" -c "clear; make run"
