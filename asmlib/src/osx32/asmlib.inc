@@ -89,48 +89,32 @@
     sub esp, 4
     EXEC_SYSCALL 4
 %endmacro
-; %macro SYSCALL_WRITE 3
-;     push ebp
-;     mov ebp, esp
-;     and esp, 0xfffffff0  ; advance to next 16-byte boundary
-;     push %3 
-;     push %2
-;     push %1
-;     sub esp, 4
-;     EXEC_SYSCALL 4
-;     mov esp, ebp
-;     pop ebp
-; %endmacro
-
-%define CALL_SYSCALL_EXIT SYSCALL_EXIT
-%define CALL_SYSCALL_WRITE SYSCALL_WRITE
 
 %undef PRE_EXEC_SYSCALL
 %undef EXEC_SYSCALL
 
-; %macro CALL_SYSCALL_EXIT 1
-;     ; push esp
-;     ; and esp, 
-;     push %1
-;     sub esp, 4    ; align to 8-byte boundary...?! (note: seems to be 8 bytes, not 16 on macos 10.11)
-;     EXEC_SYSCALL 1
-;     add esp, 8
-; %endmacro
-
-; ; user_ssize_t write(int fd, user_addr_t cbuf, user_size_t nbyte)
-; %macro CALL_SYSCALL_WRITE 3
-;     push %3
-;     push %2
-;     push %1
-;     sub esp, 4      ; align to 16-byte boundary
-;     EXEC_SYSCALL 4
-;     add esp, 16
-; %endmacro
-
-
 ;
 ; I/O macros
 ;
+
+; SET_IO( fd, buffer, buf_sz )
+%macro SET_IO 3
+    mov edi, %2
+%endmacro
+
+; FLUSH_IO( fd, buffer, buf_sz )
+%macro FLUSH_IO 3
+    sub edi, %2
+    jle %%invalidOrZeroBytes
+    cmp edi, %3
+    jle %%sizeOk
+        mov edi, %3
+    %%sizeOk:
+    SYSCALL_WRITE %1, %2, edi
+    %%invalidOrZeroBytes:
+    mov edi, %2
+%endmacro
+
 %macro WRITE_HEX_N 2
     push eax
     push ecx
@@ -223,91 +207,10 @@ start:
     ; SET_WRITE_TARGET STDOUT
     call _main
     ; call flushIO
-    CALL_SYSCALL_EXIT 0
+    SYSCALL_EXIT 0
 %endif
 
-section .bss
-g_stdin_buffer:  resb IO_BUFFER_SIZE
-g_stdout_buffer: resb IO_BUFFER_SIZE
-g_stderr_buffer: resb IO_BUFFER_SIZE
-
-section .data
-g_io_ptrs: dd 0, 0, 0
-
 section .text
-; flushIO ()
-; Flushes I/O in edi and all active streams.
-DECL_FCN flushIO
-    push eax
-    push ecx
-
-    ; First, determine if edi pointing to stdout/stderr buffers.
-    ; Iff it is, update the ptrs w/ edi, and reset edi before flushing.
-    .check_stdout:
-        cmp edi, g_stdout_buffer
-        jl .not_stdout
-        sub edi, g_stdout_buffer
-        cmp edi, [g_io_ptrs + STDOUT]
-        jg .not_stdout
-
-        mov [g_io_ptrs + STDOUT], edi
-        mov edi, g_stdout_buffer
-        jmp .flushStreams
-    .not_stdout:
-        cmp edi, g_stderr_buffer
-        jl .not_stderr
-        sub edi, g_stderr_buffer
-        cmp edi, [g_io_ptrs + STDERR]
-        jg .not_stderr
-
-        mov [g_io_ptrs + STDERR], edi
-        mov edi, g_stderr_buffer
-    .not_stderr:
-.flushStreams:
-    push edi
-    ; Flush stdout + stderr (stdin used for read() + handled differently)
-    .flushStdout:
-        mov eax, [g_io_ptrs + STDOUT]
-        cmp eax, 0
-        jz  .flushStderr            ; skip if no bytes to write
-        cmp eax, IO_BUFFER_SIZE
-        jl  .noClamp01              ; clamp to buffer size
-            mov eax, IO_BUFFER_SIZE
-        .noClamp01:
-        CALL_SYSCALL_WRITE STDOUT, g_stdout_buffer, eax  
-    .flushStderr:
-        mov eax, [g_io_ptrs + STDERR]
-        cmp eax, 0
-        jz  .flushEnd
-        cmp eax, IO_BUFFER_SIZE
-        jl .noClamp02
-            mov eax, IO_BUFFER_SIZE
-        .noClamp02:
-        CALL_SYSCALL_WRITE STDOUT, g_stdout_buffer, eax
-    .flushEnd:
-
-    ; Update ptrs
-    mov [g_io_ptrs + STDOUT], dword 0
-    mov [g_io_ptrs + STDERR], dword 0
-
-    pop edi
-    pop ecx
-    pop eax
-END_FCN  flushIO
-
-; setWriteTarget( eax = STDOUT | STDERR ) => edi = <ptr to stdout | stderr buffer>
-DECL_FCN setWriteTarget
-    call flushIO
-    cmp eax, STDERR
-    jnz .setStdout
-        mov edi, g_stderr_buffer
-        jmp .l_end
-    .setStdout:
-        mov edi, g_stdout_buffer
-        jmp .l_end
-    .l_end:
-END_FCN  setWriteTarget
-
 
 ; Implementation note: All write*** integer algorithms work backwards:
 ; we repeatedly divide the integer by its base, and write the modulo

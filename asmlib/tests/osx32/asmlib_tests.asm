@@ -5,7 +5,7 @@ section .text
 global start
 start:
     call runAllTests
-    CALL_SYSCALL_EXIT 0
+    SYSCALL_EXIT 0
 
 %macro ASSERT_EQ 3
     cmp %1, %2
@@ -16,7 +16,7 @@ start:
         %%msg.length: equ $ - %%msg
     section .text
     %%testFail:
-        CALL_SYSCALL_WRITE STDOUT, %%msg, %%msg.length
+        SYSCALL_WRITE STDOUT, %%msg, %%msg.length
     %%testOk:
 %endmacro
 
@@ -25,7 +25,14 @@ section .data
     %%str: db %1
     %%str.length: equ $ - %%str
 section .text
-    CALL_SYSCALL_WRITE STDOUT, %%str, %%str.length
+    SYSCALL_WRITE STDOUT, %%str, %%str.length
+%endmacro
+
+%macro WRITE_STR_LIT2 1
+section .data
+    %%str: db %1
+section .text
+    WRITE_STRZ %%str
 %endmacro
 
 
@@ -47,6 +54,7 @@ DECL_FCN runAllTests
     call test_sanity
     call test_basic_output
     call test_syscall_write_contract
+    call test_set_flush_io
     WRITE_STR_LIT{10,"all tests ok...?",10}
 END_FCN runAllTests
 
@@ -265,7 +273,69 @@ DECL_FCN test_syscall_write_contract
     WRITE_STR_LIT{10,"done",10}
 END_FCN test_syscall_write_contract
 
+section .bss
+%define A_SIZE 8
+%define B_SIZE 14
+%define C_SIZE 120
+bufferA: resb A_SIZE
+bufferB: resb B_SIZE
+bufferC: resb C_SIZE
+section .text
 
+DECL_FCN test_set_flush_io
+    WRITE_STR_LIT{10, "Test setIO / flushIO",10}
+
+    WRITE_STR_LIT{"bufferA: "}
+    SET_IO STDOUT, bufferA, A_SIZE
+    WRITE_0x
+    WRITE_HEX_32 dword 0x123098
+    WRITE_CHR ' '
+    WRITE_STR str01, str01.len
+    WRITE_CHR ' '
+    WRITE_DEC 0x123098
+    mov esi, edi 
+    FLUSH_IO STDOUT, bufferA, A_SIZE
+
+    WRITE_STR_LIT{10,"overflow bufferA: "}
+    SET_IO STDOUT, bufferA, A_SIZE
+    mov edi, esi
+    FLUSH_IO STDOUT, bufferA, A_SIZE
+
+    WRITE_STR_LIT{10,"overflow bufferB: "}
+    SET_IO STDOUT, bufferB, B_SIZE
+    mov edi, esi
+    FLUSH_IO STDOUT, bufferB, B_SIZE
+
+    WRITE_STR_LIT{10,"overflow bufferC: "}
+    SET_IO STDOUT, bufferC, C_SIZE
+    mov edi, esi
+    FLUSH_IO STDOUT, bufferC, C_SIZE
+
+    WRITE_STR_LIT{10,"empty bufferA: "}
+    SET_IO STDOUT, bufferA, A_SIZE
+    FLUSH_IO STDOUT, bufferA, A_SIZE
+
+    WRITE_STR_LIT{10,"bufferB: "}
+    SET_IO STDOUT, bufferB, B_SIZE
+    WRITE_0x
+    WRITE_HEX_32 dword 0x123098
+    WRITE_CHR ' '
+    WRITE_STR str01, str01.len
+    WRITE_CHR ' '
+    WRITE_DEC 0x123098
+    FLUSH_IO STDOUT, bufferB, B_SIZE
+
+    WRITE_STR_LIT{10,"bufferC: "}
+    SET_IO STDOUT, bufferC, C_SIZE
+    WRITE_0x
+    WRITE_HEX_32 dword 0x123098
+    WRITE_CHR ' '
+    WRITE_STR str01, str01.len
+    WRITE_CHR ' '
+    WRITE_DEC 0x123098
+    FLUSH_IO STDOUT, bufferC, C_SIZE
+
+END_FCN  test_set_flush_io
 
 
 
