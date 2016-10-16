@@ -300,9 +300,16 @@ DECL_FCN writeDecimal32
     jz .isPositive
         xor eax, 0xffffffff
         inc eax
-        mov [edi], byte 45          ; '-'
+        mov [edi], byte 45   ; negative sign '-'
         inc edi
     .isPositive:
+    call writeUnsignedDecimal32
+END_FCN writeDecimal32
+
+
+; writeUnsignedDecimal32( eax value, edi out_buffer )
+;   does not preserve eax (use WRITE_DEC for register preservation)
+DECL_FCN writeUnsignedDecimal32
     push ebx
     push edx
     push esi
