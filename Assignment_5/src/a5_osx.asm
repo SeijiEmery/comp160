@@ -42,7 +42,12 @@ DECL_FCN _main
         sub esp, 4
         int 0x80
 
-        CALL_SYSCALL_WRITE STDOUT, str01, str01.len
+        mov ebx, esp
+        SYSCALL_WRITE dword STDOUT, dword str01, dword str01.len
+        sub ebx, esp
+        jz .ok01
+            CALL_SYSCALL_EXIT ebx
+        .ok01:
         CALL_SYSCALL_EXIT  -1
 
         ; sub esp, 16

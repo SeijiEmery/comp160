@@ -61,7 +61,25 @@
     int 0x80
 %endmacro
 
+%macro SYSCALL_WRITE 3
+    ; push ebp
+    ; mov ebp, esp
+    and esp, 0xfffffff0  ; advance to next 16-byte boundary
+    ; push %3 
+    ; push %2
+    ; push %1
+    ; ; sub esp, 4
+    ; EXEC_SYSCALL 1
+    ; mov esp, ebp
+    ; pop ebp
+%endmacro
+
+
+
+
 %macro CALL_SYSCALL_EXIT 1
+    ; push esp
+    ; and esp, 
     push %1
     sub esp, 4    ; align to 8-byte boundary...?! (note: seems to be 8 bytes, not 16 on macos 10.11)
     EXEC_SYSCALL 1
