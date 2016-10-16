@@ -352,21 +352,21 @@ DECL_FCN writeDecimal32
 END_FCN writeDecimal32
 
 
-; lcgRand( eax value -> eax nextValue )
+; lcgNextRand( eax value -> eax nextValue )
 ; Generates a random number in the range [0, 2^31) using a 
 ; linear congruental generator. Uses coefficients from the 
 ; c standard library.
 ; Does NOT use an internal seed (pass the seed value in eax).
-; See lcgRandRange impl if you want to use this directly.
+; See lcgRand32 and lcgRandRange for more usable versions.
 ;
-DECL_FCN lcgRand
+DECL_FCN lcgNextRand
     push edx
     mov edx, 1103515245  ; multiplier coefficient form the c standard library
     mul edx
     add eax, 12345       ; additive coefficient from the c standard library
     and eax, 0x7fffffff  ; clamp to [0, 2^31] for some reason...?
     pop edx
-END_FCN  lcgRand
+END_FCN  lcgNextRand
 
 section .data
     lcg_seed: dd 0
@@ -379,6 +379,15 @@ section .text
     mov %1, [lcg_seed]
 %endmacro
 
+; lcgRand32 (-> eax randomValue)
+; Generates a random 32-bit integer.
+DECL_FCN lcgRand32
+    LCG_GET_SEED eax
+    call lcgNextRand
+    LCG_SET_SEED eax
+END_FCN  lcgRand32
+
+
 ; lcgRandRange( eax upBound -> eax randomValue )
 ; Generates a random integer in the range [0, eax).
 ; Uses the internal seed associated with LCG_GET_SEED / LCG_SET_SEED
@@ -388,7 +397,7 @@ DECL_FCN lcgRandRange
     push eax            ; save up bound
 
     LCG_GET_SEED eax    ; get random number on [0, 2^31)
-    call lcgRand
+    call lcgNextRand
     LCG_SET_SEED eax
 
     pop ebx             ; restore up bound

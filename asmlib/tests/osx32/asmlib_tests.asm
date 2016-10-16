@@ -55,6 +55,7 @@ DECL_FCN runAllTests
     call test_basic_output
     call test_syscall_write_contract
     call test_set_flush_io
+    call test_lcg_random
     WRITE_STR_LIT{10,"all tests ok...?",10}
 END_FCN runAllTests
 
@@ -334,10 +335,56 @@ DECL_FCN test_set_flush_io
     WRITE_CHR ' '
     WRITE_DEC 0x123098
     FLUSH_IO STDOUT, bufferC, C_SIZE
-
 END_FCN  test_set_flush_io
 
+DECL_FCN test_lcg_random
+    WRITE_STR_LIT {10,10,"lcgRand32:"}
 
+    ; Write a table of N numbers. NUM_COLS must be a power of 2 minus 1 (3, 7, 15).
+    %define NUM_COLS 7
+    %define NUM_ROWS 20
+
+    mov ecx, NUM_ROWS * (NUM_COLS + 1)
+    mov edi, io_scratch_buffer
+    .l1:
+        ; Branch to write Eol + flush buffer every N elements.
+        ; Note: this gets triggered on the first run, assuming NUM_COLS + 1 is a power of 2.
+        mov eax, ecx
+        and eax, NUM_COLS   ; write eol every N elements
+        jz .writeEol
+        push ecx
+
+        ; Write table element
+        call lcgRand32
+        WRITE_HEX_32 eax
+        WRITE_CHR ' '
+
+        ; equiv to loop .l1
+        pop ecx
+        sub ecx, 1
+        jg .l1
+        .writeEol:
+            cmp ecx, 0    ; special case for eax == 0:
+            jz  .end_l1   ; exit + only write EOL + flush buffer if that's the case (no line num)
+            push ecx
+
+            ; Write a newline, followed by printing the column number as an 8-bit hex integer.
+            WRITE_EOL
+            mov eax, NUM_ROWS * (NUM_COLS + 1)
+            sub eax, ecx
+            WRITE_HEX_8 eax
+            WRITE_CHR ' '
+
+            ; Flush buffer, and continue loop
+            call ioWrite
+            pop ecx
+            sub ecx, 1
+            jg .l1
+    .end_l1:
+    WRITE_EOL
+    call ioWrite
+
+END_FCN  test_lcg_random
 
 
 
