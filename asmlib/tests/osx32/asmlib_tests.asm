@@ -399,10 +399,29 @@ DECL_FCN test_lcg_random
     ; End table
     WRITE_EOL
     call ioWrite
-
     LCG_SET_SEED dword 0
 
-    
+    WRITE_STR_LIT {10,"lcgRandRange(100)"}
+    mov edi, io_scratch_buffer
+
+    %macro TABLE_EACH_ELEMENT 0
+        mov eax, 100
+        call lcgRandRange
+        WRITE_DEC eax
+        WRITE_CHR ' '
+    %endmacro
+    %macro TABLE_EACH_LINE 1
+        WRITE_EOL
+        WRITE_CHR ' '
+        WRITE_CHR ' '
+        call ioWrite
+    %endmacro
+
+    TABLE_PRINT_ELEMS
+
+    WRITE_EOL
+    call ioWrite
+    LCG_SET_SEED dword 0
 
 END_FCN  test_lcg_random
 
