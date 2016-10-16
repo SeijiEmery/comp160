@@ -340,49 +340,69 @@ END_FCN  test_set_flush_io
 DECL_FCN test_lcg_random
     WRITE_STR_LIT {10,10,"lcgRand32:"}
 
-    ; Write a table of N numbers. NUM_COLS must be a power of 2 minus 1 (3, 7, 15).
-    %define NUM_COLS 7
-    %define NUM_ROWS 20
+    ; Table-printing pseudo-template defined in asmlib.inc
 
-    mov ecx, NUM_ROWS * (NUM_COLS + 1)
-    mov edi, io_scratch_buffer
-    .l1:
-        ; Branch to write Eol + flush buffer every N elements.
-        ; Note: this gets triggered on the first run, assuming NUM_COLS + 1 is a power of 2.
-        mov eax, ecx
-        and eax, NUM_COLS   ; write eol every N elements
-        jz .writeEol
-        push ecx
+    ; Define num cols + rows. Cols must be power of 2 minus 1 (3, 7, 15)
+    %define TABLE_NUM_COLS 7
+    %define TABLE_NUM_ROWS 20
 
-        ; Write table element
+    ; This gets run for each element in the table
+    %macro TABLE_EACH_ELEMENT 0
         call lcgRand32
         WRITE_HEX_32 eax
         WRITE_CHR ' '
+    %endmacro
 
-        ; equiv to loop .l1
-        pop ecx
-        sub ecx, 1
-        jg .l1
-        .writeEol:
-            cmp ecx, 0    ; special case for eax == 0:
-            jz  .end_l1   ; exit + only write EOL + flush buffer if that's the case (no line num)
-            push ecx
+    ; This gets run for each line (before printing elements)
+    ; in the table
+    %macro TABLE_EACH_LINE 1
+        WRITE_EOL
+        WRITE_HEX_8 %1
+        WRITE_CHR ' '
+        call ioWrite
+    %endmacro
 
-            ; Write a newline, followed by printing the column number as an 8-bit hex integer.
-            WRITE_EOL
-            mov eax, NUM_ROWS * (NUM_COLS + 1)
-            sub eax, ecx
-            WRITE_HEX_8 eax
-            WRITE_CHR ' '
+    ; Setup I/O before table
+    mov edi, io_scratch_buffer
 
-            ; Flush buffer, and continue loop
-            call ioWrite
-            pop ecx
-            sub ecx, 1
-            jg .l1
-    .end_l1:
+    ; Instantiate template
+    TABLE_PRINT_ELEMS
+    ; push eax
+    ; push ecx
+    ; mov ecx, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
+    ; .printTable:
+    ;     ; Branch to write Eol + flush buffer every N elements.
+    ;     ; Note: this gets triggered on the first run, assuming NUM_COLS + 1 is a power of 2.
+    ;     mov eax, ecx
+    ;     and eax, TABLE_NUM_COLS   ; write eol every N elements
+    ;     jz .writeLine
+    ;     push ecx
+
+    ;     TABLE_EACH_ELEMENT
+
+    ;     pop ecx
+    ;     loop .printTable
+    ; .writeLine:
+    ;     sub ecx, 1
+    ;     jle .endTable
+    ;     push ecx
+
+    ;     mov eax, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
+    ;     sub eax, ecx
+    ;     TABLE_EACH_LINE eax
+    ;     pop ecx
+    ;     jmp .printTable
+    ; .endTable:
+    ; pop ecx
+    ; pop eax
+
+    ; End table
     WRITE_EOL
     call ioWrite
+
+    LCG_SET_SEED dword 0
+
+    
 
 END_FCN  test_lcg_random
 
