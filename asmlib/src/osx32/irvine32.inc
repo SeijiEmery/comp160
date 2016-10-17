@@ -189,7 +189,7 @@ END_FCN  RandomRange
 
 ; Randomize()
 DECL_FCN Randomize
-    IO_EXIT_STDOUT
+    IO_ENTER_STDOUT
     WRITE_STR_LIT {10,"Unimplemented: irvine32 Randomize()",10}
     IO_EXIT_STDOUT
     SYSCALL_EXIT -1

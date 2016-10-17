@@ -176,7 +176,7 @@
 
 %macro WRITE_STR_LIT 1
 section .data
-    %%str: db %1
+    %%str: db %1,0
 section .text
     WRITE_STRZ %%str
 %endmacro
