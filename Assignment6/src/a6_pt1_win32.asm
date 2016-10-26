@@ -4,14 +4,26 @@
 ;
 
 INCLUDE Irvine32.inc
+INCLUDE Macros.inc
 
+STRBUF_SIZE equ 1024
 .data
+    ; String literals for prompts, etc
     lit_plainTextPrompt  BYTE "Enter plain text: ",0
     lit_encryptKeyPrompt BYTE "Enter encryption key: ",0
     lit_displayCypher    BYTE "Cypher text: ",0
     lit_displayDecrypted BYTE "Decrypted:   ",0
-    STRBUF_SIZE equ 4096
+
+    ; Temp variables we use in xorEncryptDemo:
+    ; Worth putting here since this entire data segment will fit in cache.
+    plainTextPtr  DWORD 0
+    plainTextSize DWORD 0
+    encryptKeyPtr DWORD 0
+
+    ; Temp string buffer
+    strbuf BYTE STRBUF_SIZE DUP ?
 .code
+
 
 ; Encrypt a string in-place using an encryption key (string) and XOR algorithm.
 ;   edi: source string
@@ -50,20 +62,85 @@ xorEncrypt PROC USES eax ebx
 xorEncrypt ENDP
 
 
+; Using Irvine32 I/O, prompt user to input a plain text + password, 
+; call xorEncrypt to encode / decode this string, and display results.
+xorEncryptDemo PROC USES esi edi edx eax ecx
+    push ebp        ; save stack frame
+    mov  ebp, esp
 
+    ; Prompt user for plain text.
+    mov edx, OFFSET lit_plainTextPrompt
+    call WriteString
 
+    ; Fetch input
+    mov edx, OFFSET strbuf
+    mov ecx, STRBUF_SIZE
+    call ReadString
+    call Crlf
 
+    ; Save pointer + size of plaintext string, and write '\0' to end of string
+    mov [plainTextPtr],  edx
+    mov [plainTextSize], ecx
+    mov BYTE PTR [edx + ecx], 0
 
+    ; Prompt user for encrypt key
+    mov edx, OFFSET lit_encryptKeyPrompt
+    call WriteString
 
+    ; Fetch input. We'll reuse strbuf, which means we'll need to adjust the
+    ; ReadString ptr + size so we don't overwrite the plaintext string.
+    mov edx, OFFSET strbuf
+    add edx, [plainTextSize]
+    inc edx
 
+    mov ecx, STRBUF_SIZE
+    sub ecx, [plainTextSize]
+    dec ecx
 
+    call ReadString
+    call Crlf
 
+    ; Save pointer; write '\0' to end of both strings.
+    mov [encryptKeyPtr], edx
+    mov BYTE PTR [edx + ecx], 0
 
+    ; Call xorEncrypt to encrypt string
+    mov edi, [plainTextPtr]
+    mov ecx, [plainTextSize]
+    mov esi, [encryptKeyPtr]
+    call xorEncrypt
 
+    ; Display result
+    mov edx, OFFSET lit_displayCypher
+    call WriteString
+    mov edx, OFFSET plainTextPtr
+    call WriteString
+    call Crlf
 
+    ; Call xorEncrypt to decrypt string
+    mov edi, [plainTextPtr]
+    mov ecx, [plainTextSize]
+    mov esi, [encryptKeyPtr]
+    call xorEncrypt
 
+    ; Display result
+    mov edx, OFFSET lit_displayDecrypted
+    call WriteString
+    mov edx, OFFSET plainTextPtr
+    call WriteString
+    call Crlf
 
+    mov  esp, ebp   ; restore stack frame + return
+    pop  ebp
+    ret
+xorEncryptDemo ENDP
 
+main PROC
+    call xorEncryptDemo
 
-
-
+    ; Calling ReadChar() to force program to wait, since exit doesn't always
+    ; seem to wait for input (bug). Press return to exit.
+    call ReadChar
+    exit
+main ENDP
+END main
