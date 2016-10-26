@@ -1,6 +1,7 @@
 ;
 ; Assignment 6, part 1
-;   Encrypts / decrypts a string using a string "password" and XOR-ing algorithm.
+;   Encrypts / decrypts a string using an encryption key (plaintext password) 
+;   and XOR-ing algorithm.
 ;
 
 INCLUDE Irvine32.inc
