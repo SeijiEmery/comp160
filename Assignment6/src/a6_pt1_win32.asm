@@ -7,7 +7,7 @@
 INCLUDE Irvine32.inc
 INCLUDE Macros.inc
 
-STRBUF_SIZE equ 1024
+STRBUF_SIZE equ 4096
 .data
     ; String literals for prompts, etc
     lit_plainTextPrompt  BYTE "Enter plain text: ",0
@@ -22,7 +22,7 @@ STRBUF_SIZE equ 1024
     encryptKeyPtr DWORD 0
 
     ; Temp string buffer
-    strbuf BYTE STRBUF_SIZE DUP ?
+    strbuf BYTE STRBUF_SIZE DUP (0)
 .code
 
 
@@ -37,7 +37,7 @@ xorEncrypt PROC USES eax ebx
     cmp ecx, 0               ; Skip if string is empty (ecx == 0)
     jle L1_end
     cmp BYTE PTR [esi], 0   ; Skip if encryption key is empty (first byte is zero)
-    jle L1_end
+    jl L1_end
     L1:
         ; Load byte from encryption key string
         mov  al, BYTE PTR [esi]
@@ -53,6 +53,7 @@ xorEncrypt PROC USES eax ebx
         ; Increment pointers + continue until ecx == 0
         inc  esi
         inc  edi
+       
         loop L1
         jmp  L1_end
     resetKeyStr:
@@ -68,6 +69,7 @@ xorEncrypt ENDP
 xorEncryptDemo PROC USES esi edi edx eax ecx
     push ebp        ; save stack frame
     mov  ebp, esp
+    xor ecx, ecx
 
     ; Prompt user for plain text.
     mov edx, OFFSET lit_plainTextPrompt
@@ -80,9 +82,9 @@ xorEncryptDemo PROC USES esi edi edx eax ecx
     call Crlf
 
     ; Save pointer + size of plaintext string, and write '\0' to end of string
-    mov [plainTextPtr],  edx
-    mov [plainTextSize], ecx
-    mov BYTE PTR [edx + ecx], 0
+    mov plainTextPtr,  edx
+    mov plainTextSize, eax
+    mov BYTE PTR [edx + eax], 0
 
     ; Prompt user for encrypt key
     mov edx, OFFSET lit_encryptKeyPrompt
@@ -91,43 +93,52 @@ xorEncryptDemo PROC USES esi edi edx eax ecx
     ; Fetch input. We'll reuse strbuf, which means we'll need to adjust the
     ; ReadString ptr + size so we don't overwrite the plaintext string.
     mov edx, OFFSET strbuf
-    add edx, [plainTextSize]
+    add edx, plainTextSize
     inc edx
 
     mov ecx, STRBUF_SIZE
-    sub ecx, [plainTextSize]
+    sub ecx, plainTextSize
     dec ecx
 
     call ReadString
     call Crlf
 
     ; Save pointer; write '\0' to end of both strings.
-    mov [encryptKeyPtr], edx
-    mov BYTE PTR [edx + ecx], 0
+    mov encryptKeyPtr, edx
+    mov BYTE PTR [edx + eax], 0
+
+    call Crlf
+    mov edx, plainTextPtr
+    call WriteString
+    call Crlf
+    mov edx, encryptKeyPtr
+    call WriteString
+    call Crlf
+
 
     ; Call xorEncrypt to encrypt string
-    mov edi, [plainTextPtr]
-    mov ecx, [plainTextSize]
-    mov esi, [encryptKeyPtr]
+    mov edi, plainTextPtr
+    mov ecx, plainTextSize
+    mov esi, encryptKeyPtr
     call xorEncrypt
 
     ; Display result
     mov edx, OFFSET lit_displayCypher
     call WriteString
-    mov edx, OFFSET plainTextPtr
+    mov edx, plainTextPtr
     call WriteString
     call Crlf
 
     ; Call xorEncrypt to decrypt string
-    mov edi, [plainTextPtr]
-    mov ecx, [plainTextSize]
-    mov esi, [encryptKeyPtr]
+    mov edi, plainTextPtr
+    mov ecx, plainTextSize
+    mov esi, encryptKeyPtr
     call xorEncrypt
 
     ; Display result
     mov edx, OFFSET lit_displayDecrypted
     call WriteString
-    mov edx, OFFSET plainTextPtr
+    mov edx, plainTextPtr
     call WriteString
     call Crlf
 

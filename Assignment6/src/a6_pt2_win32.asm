@@ -8,13 +8,12 @@ INCLUDE Macros.inc
 
 STRBUF_SIZE equ 1024
 .data
-    lit_optionsMenu BYTE 
-        "---- Boolean Calculator ----",13,10,
-        "Enter:",13,10,
-        "1. x AND y",13,10,
-        "2. x OR y" ,13,10,
-        "3. NOT x",13,10,
-        "4. x XOR y",13,10,
+    lit_optionsMenu BYTE "---- Boolean Calculator ----",13,10, \
+        "Enter:",13,10, \
+        "1. x AND y",13,10, \
+        "2. x OR y" ,13,10, \
+        "3. NOT x",13,10, \
+        "4. x XOR y",13,10, \
         "5. Exit Program",13,10,0
     lit_promptStr  BYTE "> ",0
     lit_hexPrompt1 BYTE "Input the first 32-bit hexadecimal operand: ",0
@@ -44,13 +43,13 @@ runBooleanCalculator PROC
     ; Main loop -- repeat until we choose the exit option.
     L1:
         ; Display options
-        mov edx, lit_optionsMenu
+        mov edx, OFFSET lit_optionsMenu
         call WriteString
 
         ; Ask user for integer corresponding to a menu option.
         ; If invalid, will repeat this prompt until getting a valid result (0-5).
         L2:
-            mov edx, lit_promptStr
+            mov edx, OFFSET lit_promptStr
             call WriteString
             call ReadInt
             call Crlf
@@ -64,25 +63,25 @@ runBooleanCalculator PROC
 
             jmp L2
         L2_end:
-        mov currentOp, eax
+        mov var_currentOp, eax
 
         ; Handle exit op
         cmp eax, op_exit
         jz  L1_end
 
         ; Prompt for first argument
-        mov edx, lit_hexPrompt1
+        mov edx, OFFSET lit_hexPrompt1
         call WriteString
         call ReadHex
         mov  var_x, eax
         call Crlf
        
         ; Skip second arg iff unary (op_not)
-        cmp currentOp, op_not
+        cmp var_currentOp, op_not
         jz  execOpNot
 
         ; Prompt for second argument
-        mov edx, lit_hexPrompt2
+        mov edx, OFFSET lit_hexPrompt2
         call WriteString
         call ReadHex
         mov  var_y, eax
@@ -97,7 +96,7 @@ runBooleanCalculator PROC
         mov eax, var_x
 
         ; Jump to corresponding op.
-        mov ebx, currentOp
+        mov ebx, var_currentOp
         cmp ebx, op_and
         jz  execOpAnd
         cmp ebx, op_or
@@ -116,9 +115,11 @@ runBooleanCalculator PROC
             xor eax, edx
             jmp printResult
         printResult:
-            mov edx, lit_hexResult
+            mov edx, OFFSET lit_hexResult
             call WriteString
             call WriteHex
+        call Crlf
+        call Crlf
         jmp L1
     L1_end:
     mov esp, ebp   ; restore stack frame
