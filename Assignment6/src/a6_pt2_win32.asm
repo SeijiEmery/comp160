@@ -53,9 +53,9 @@ INCLUDE Macros.inc
 .code
 
 ; Helper macro for indexed array reads. Equiv to c `dst = array[index]`.
-mReadArray MACRO dst:REQ, array:REQ index:REQ
-    mov dst, [array + index * TYPE array]
-mReadArray ENDM
+; mReadArray MACRO dst:REQ array:REQ index:REQ
+;     mov dst, [array + index * TYPE array]
+; mReadArray ENDM
 
 ;
 ; Calculator operations. Very flexible -- just change this and the table
@@ -88,20 +88,24 @@ runCalculator PROC
 
         ; Display which option the user chose
         mWrite "executing operation "
-        mReadArray edx, calculatorOp_names, eax
+        mov edx, [calculatorOp_names + TYPE calculatorOp_names * eax]
+        ;mReadArray edx, calculatorOp_names, eax
         call WriteString
-        mWrite ": ",13,10
+        mWrite ": "
+        call Crlf
 
         ; call calculatorGetArgs to prompt user for ecx args and store
         ; values into calculator_arg<n>.
-        mReadArray ecx, calculatorOp_argc, eax
+        mov ecx, [calculatorOp_argc + eax * TYPE calculatorOp_argc]
+        ;mReadArray ecx, calculatorOp_argc, eax
         call calculatorGetArgs
 
         ; Execute next operation
         mov edx, calculator_nextOp
         mov eax, calculator_arg0
         mov ebx, calculator_arg1
-        mReadArray edx, calculatorOp_fcns, edx
+        mov edx, [calculatorOp_fcns + edx * TYPE calculatorOp_fcns]
+        ;mReadArray edx, calculatorOp_fcns, edx
         call edx
 
         ; Check that we should still be running (if calculator_running set to 0, will terminate immediately)
@@ -111,6 +115,8 @@ runCalculator PROC
         ; Display result
         mWriteString lit_hexResult
         call WriteHex
+        call Crlf
+        call Crlf
         jmp runLoop
     endRunLoop:
     ret
@@ -144,30 +150,33 @@ calculatorGetNextOption PROC
     ; Repeat until input falls within [min, max).
     mov ebx, 1              ; min accepted value
     mov ecx, NUM_OPS+1      ; max accepted value
-    mov edx, lit_promptStr  ; prompt string
+    mov edx, OFFSET lit_promptStr  ; prompt string
     call promptRange
+    dec eax
     ret
 calculatorGetNextOption ENDP
 
 
 ; Displays text for menu options. Builds this procedurally based on calculatorOp_**** values.
 displayCalculatorMenu PROC
-    mov edx, lit_menuHeader
+    mov edx, OFFSET lit_menuHeader
     call WriteString
 
-    mov ecx, NUM_OPS
+    mov ecx, 0
     writeMenuOptions:
-        mov eax, NUM_OPS+1
-        sub eax, ecx
-        call WriteInt
+        mov eax, ecx
+        inc eax
+        call WriteDec
         mWrite ". "
 
         mov eax, [calculatorOp_names + ecx * TYPE calculatorOp_names]
         mov ebx, [calculatorOp_argc + ecx * TYPE calculatorOp_argc]
         call writeBinaryOpStr
         
-        mWriteLn
-        loop writeMenuOptions
+        call Crlf
+        inc ecx
+        cmp ecx, NUM_OPS
+        jl writeMenuOptions
     ret
 displayCalculatorMenu ENDP
 
@@ -179,11 +188,14 @@ displayCalculatorMenu ENDP
 ;    op_str            if num_args == 0
 writeBinaryOpStr PROC
     .if ebx >= 2
+        push eax
         mWrite "x "
-        mWriteString eax
+        pop edx
+        call WriteString
         mWrite " y"
     .else
-        mWriteString eax
+        mov edx, eax
+        call WriteString
         .if ebx == 1
             mWrite " x"
         .endif
@@ -204,7 +216,6 @@ promptRange PROC
         cmp  eax, ecx
         jle  endPrompt
     repeatPrompt:
-        call Crlf
         jmp doPrompt
     endPrompt:
         call Crlf
