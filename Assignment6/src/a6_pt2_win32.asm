@@ -52,11 +52,6 @@ INCLUDE Macros.inc
     calculator_running DWORD ?  ; Set this to 0 to terminate the calculator.
 .code
 
-; Helper macro for indexed array reads. Equiv to c `dst = array[index]`.
-; mReadArray MACRO dst:REQ array:REQ index:REQ
-;     mov dst, [array + index * TYPE array]
-; mReadArray ENDM
-
 ;
 ; Calculator operations. Very flexible -- just change this and the table
 ; above to change calculator semantics / operations (menus will be updated, etc).
@@ -89,7 +84,6 @@ runCalculator PROC
         ; Display which option the user chose
         mWrite "executing operation "
         mov edx, [calculatorOp_names + TYPE calculatorOp_names * eax]
-        ;mReadArray edx, calculatorOp_names, eax
         call WriteString
         mWrite ": "
         call Crlf
@@ -97,7 +91,6 @@ runCalculator PROC
         ; call calculatorGetArgs to prompt user for ecx args and store
         ; values into calculator_arg<n>.
         mov ecx, [calculatorOp_argc + eax * TYPE calculatorOp_argc]
-        ;mReadArray ecx, calculatorOp_argc, eax
         call calculatorGetArgs
 
         ; Execute next operation
@@ -105,7 +98,6 @@ runCalculator PROC
         mov eax, calculator_arg0
         mov ebx, calculator_arg1
         mov edx, [calculatorOp_fcns + edx * TYPE calculatorOp_fcns]
-        ;mReadArray edx, calculatorOp_fcns, edx
         call edx
 
         ; Check that we should still be running (if calculator_running set to 0, will terminate immediately)
