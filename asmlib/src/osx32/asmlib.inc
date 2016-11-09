@@ -449,7 +449,7 @@ END_FCN lcgRandRange
     %%writeLine:
         sub ecx, 1
         jle %%endTable
-        push ecx
+        push ecx 
 
         mov eax, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
         sub eax, ecx
@@ -461,6 +461,251 @@ END_FCN lcgRandRange
     pop eax
 %endmacro
 
+; %macro mBigInt_mov_i128_i32 2
+;     mov [%1], %2
+;     mov [%1+4],0
+;     mov [%1+8],0
+;     mov [%1+16],0
+; %endmacro
+
+; %macro mBigInt_mov_i32_i128 2
+;     mov %1, [%2]
+; %endmacro
+
+; %macro mBigInt_mov_i128_i128 3
+;     mov %3, [%2]
+;     mov [%1], %3
+;     mov %3, [%2+4]
+;     mov [%1+4], %3
+;     mov %3, [%2+8]
+;     mov [%1+8], %3
+;     mov %3, [%2+16]
+;     mov [%1+16], %3
+; %endmacro
+
+; %macro mBigInt_add_i128_i32 2
+;     add [%1], %2    ; 0  .. 32
+;     adc [%1+4], 0    ; 32 .. 64 
+;     adc [%1+8], 0    ; 64 .. 96
+;     adc [%1+16],0    ; 96 .. 128
+; %endmacro
+
+; %macro mBigInt_add_i128_i128 3
+;     mov %3, [%2]
+;     add [%1], %3
+;     adc [%1+4], 0
+;     mov %3, [%2+4]
+;     add [%1+4], %3
+;     adc [%1+8], 0
+;     mov %3, [%2+8]
+;     add [%1+8], %3
+;     adc [%1+16], 0
+;     mov %3, [%2+16]
+;     add [%1+16], %3
+; %endmacro
+
+; DECL_FCN BigInt_mul_iN_i32
+;     pushad
+;     xchg eax, ebx
+;     xor  eax, eax
+;     xor  esi, esi  ; temp carry
+
+;     mov eax, ecx
+;     shl eax, 4
+;     sub esp, eax
+
+;     .mulLoop:
+;         mov eax, [edi] ; load value
+;         ;xor edx, edx  ; not necessary...?
+;         mul ebx        ; [eax:edx] *= ebx
+
+;         add eax, esi   ; add prev carry
+;         adc edx, 0
+;         mov esi, edx   ; save carry (edx) in esi
+;         mov eax, edx   
+
+;         mov [edi], eax ; store result
+;         add edi, 4
+;         loop .mulLoop
+;     popad
+; END_FCN BigInt_mul_iN_i32
+
+; BigInt_mul_i128_i128:
+;     pushad
+;     sub esp, 16
+;     mov [esp+0], 0
+;     mov [esp+1], 0
+;     mov [esp+2], 0
+;     mov [esp+3], 0
+
+
+
+
+
+
+
+;     popad
+;     ret
+
+
+
+
+
+; BigInt_mul_iN_iN:
+;     pushad
+;     xor eax, eax
+;     .L1:
+;         push ecx
+
+;         .L2:
+
+
+
+
+
+
+;         pop ecx
+;         loop .L1
+
+
+
+
+;     popad
+;     ret
+
+
+
+
+
+
+; BigInt_div_iN_i32:
+;     ret
+
+; BigInt_mul_iN_iN:
+;     ret
+; BigInt_add
+
+
+
+
+
+
+
+; DECL_FCN BigInt_mov_i128_i32
+;     mov [edi], eax
+;     mov [edi+4], 0
+;     mov [edi+8], 0
+;     mov [edi+16],0
+; END_FCN  BigInt_mov_i128_i32
+; DECL_FCN BigInt_mov_i128_i32
+
+
+
+
+; DECL_FCN BigInt_add_i128_i32
+;     add [edi], eax    ; 0  .. 32
+;     adc [edi+4], 0    ; 32 .. 64 
+;     adc [edi+8], 0    ; 64 .. 96
+;     adc [edi+16],0    ; 96 .. 128
+; END_FCN  BigInt_add_i128_i32
+
+; DECL_FCN BigInt_add_i128_i128
+;     push eax
+;     xor eax, eax
+;     mov eax, [esi]
+;     add [edi], eax
+;     %macro ADD_PART 1
+;         adc [edi+%1], 0
+;         mov eax, [esi+%1]
+;         add [edi+%1], eax 
+;     %endmacro
+;     ADD_PART 4
+;     ADD_PART 8
+;     ADD_PART 16
+;     pop eax
+; END_FCN  BigInt_add_i128_i128
+
+; DECL_FCN BigInt_add_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; DECL_FCN BigInt_add_i64_i32
+
+; END_FCN  BigInt_add_i64_i32
+
+
+
+
+
+
+
+
+; ; 
+; DECL_FCN BigInt_add_i32
+;     push eax
+;     push ecx
+;     push edi
+;     cmp ecx, 0
+;     jle .end
+;     .addLoop:
+;         add [edi], eax
+;         adc eax, 0
+;         add edi, 4
+;         loop .addLoop
+;     .end:
+;     pop edi
+;     pop ecx
+;     pop eax
+; END_FCN  BigInt_add_BigInt
+;     push eax
+;     push ecx
+;     push edi
+;     push esi
+;     xor eax, eax
+;     cmp ecx, 0
+;     jle .end
+;     .addLoop:
+;         xor ebx, ebx
+;         mov eax, [esi]
+;         add [edi], eax
+;         adc 
+
+;         loop .addLoop
+;     .end:
+;     pop esi
+;     pop edi
+;     pop ecx
+;     pop eax
+; DECL_FCN BigInt_mul_i32
+
+
+
+; END_FCN  BigInt_mul_i32
+
+
+
+
+
+
+
+; DECL_FCN BigInt_addScalar
+
+; END_FCN  BigInt_addScalar
+
+; DECL_FCN BigInt_mulScalar
+
+; END_FCN  BigInt_mulScalar
 
 
 
