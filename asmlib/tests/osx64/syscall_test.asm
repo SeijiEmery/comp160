@@ -1,8 +1,10 @@
 
+%include "asmlib.inc"
+
 global start
 section .data
-lit_helloMsg: db "Hello, World!",10,0
-    .length: equ $ - lit_helloMsg
+lit_helloMsg: DECL_STRZ {"Hello, World!",10}
+
 section .bss
 strbuf: resb 4096
     .length: equ 4096
@@ -55,68 +57,11 @@ setupIO:
     lea rdi, [rel strbuf]
     ret
 
-%macro writeChr 1
-    mov [rdi], byte %1
-    inc rdi
-%endmacro
-%macro writeStr 1
-    mov rsi, %1
-    mov rcx, %1.length
-    rep movsb
-%endmacro
-%macro writeUint 1
-    mov rax, %1
-    call writeUint64
-%endmacro
-
-%macro writeLit 1
-section .data
-    %%lit: db %1,0
-        %%lit.length: equ $ - %%lit
-section .text
-    writeStr %%lit
-%endmacro
-
-%macro DECL_FCN 1
-%1:
-    push rbp
-    mov  rbp, rsp
-%endmacro
-%macro END_FCN 1
-    mov rsp, rbp
-    pop rbp
-    ret
-%endmacro
-
-; writeCommandlineArgs:
-    ; http://stackoverflow.com/questions/10004448/x86-64-assembly-command-line-arguments
-    ; movmem [rel argc], [rsp + 24]
-    ; movmem [rel argv], [rsp + 32]
-    ; movmem [rel envp], [rsp + 40]
-
-strncpy:
-    push rax
-    xor  rax, rax
-    .l1:
-        dec rcx
-        jl .l1_end
-
-        mov  al, [rsi]
-        test al, al
-        jz .l1_end
-
-        mov [rdi], al
-        inc rsi
-        inc rdi
-        jmp .l1
-    .l1_end:
-    pop rax
-    ret
-
-; strncpy:
-;     cld
-;     repnz movsb
-;     ret
+%define writeChr RDI_WRITE_CHR
+%define writeStr RDI_WRITE_STR
+%define writeUint RDI_WRITE_UINT
+%define writeLit  RDI_WRITE_LIT
+; %define writeUint64 io_writeUInt64
 
 DECL_FCN writeCommandlineArgs
     %define var_argc [rbp + 16]
@@ -199,35 +144,25 @@ writeUint64:
     pop rbx
     ret
 
-; writeInt64 ( rdi buffer, rax value )
-writeInt64:
+; SYS_CLASS_UNIX equ 0x2000000
+; SYS_WRITE      equ 0x4
+; SYS_READ       equ 0x3
+; SYS_EXIT       equ 0x1
 
+; ; syscall_write ( rdi fd, rsi buffer, rdx size ) => rax bytes_written
+; syscall_write:
+;     mov rax, SYS_CLASS_UNIX | SYS_WRITE
+;     syscall
+;     ret
 
+; ; syscall_read ( rdi fd, rsi buffer, rdx size ) => rax bytes_written
+; syscall_read:
+;     mov rax, SYS_CLASS_UNIX | SYS_READ
+;     syscall
+;     ret
 
-; writeDec ( rdi buffer, rax value )
-writeDec:
-    
-
-
-SYS_CLASS_UNIX equ 0x2000000
-SYS_WRITE      equ 0x4
-SYS_READ       equ 0x3
-SYS_EXIT       equ 0x1
-
-; syscall_write ( rdi fd, rsi buffer, rdx size ) => rax bytes_written
-syscall_write:
-    mov rax, SYS_CLASS_UNIX | SYS_WRITE
-    syscall
-    ret
-
-; syscall_read ( rdi fd, rsi buffer, rdx size ) => rax bytes_written
-syscall_read:
-    mov rax, SYS_CLASS_UNIX | SYS_READ
-    syscall
-    ret
-
-; syscall_exit ( rdi exit_code )
-syscall_exit:
-    mov rax, SYS_CLASS_UNIX | SYS_EXIT
-    syscall
-    ret
+; ; syscall_exit ( rdi exit_code )
+; syscall_exit:
+;     mov rax, SYS_CLASS_UNIX | SYS_EXIT
+;     syscall
+;     ret
