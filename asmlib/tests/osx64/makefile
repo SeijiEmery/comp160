@@ -7,7 +7,7 @@ LD   = $(LD_OSX)
 interactive_syscall_test:
 	when-changed -rs "syscall_test.asm" "../../src/osx64/asmlib.inc" "makefile" -c "clear; make run_syscall_test"
 run_syscall_test: build/syscall_test
-	$<
+	$< -foo -bar
 build/syscall_test: build/syscall_test.o
 	$(LD) -o $@ $<
 build/syscall_test.o: syscall_test.asm
