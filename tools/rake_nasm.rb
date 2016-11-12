@@ -59,13 +59,6 @@ end
 # nasm targets, etc.
 #
 
-# default run action for nasm_target. In theory, this can be replaced to
-# do something else (takes the path to an executable file, and should run
-# it somehow...)
-def DEFAULT_RUN_ACTION (file)
-    sh file
-end
-
 # Global variables (I know; this was the simplest solution!) that store
 # information related to past build targets (build target map, and list
 # of source files).
@@ -84,17 +77,24 @@ $nasm_src_map  = Hash.new
 #   <target>:               builds + runs target in <BUILD_DIR>/<target>.
 #   i<target>:              runs target interactively when source files change
 #                           using python when-changed utility (add_interactive_task call) 
-def nasm_target (target, src, run_action = method(:DEFAULT_RUN_ACTION))
+def nasm_target (target, src, idir=nil)
     target_path = "#{BUILD_DIR}/#{target}"
     obj_path    = "#{target_path}.o"
+
+    nasm_flags = []
+    if idir && idir.kind_of?(Array)
+        idir.each {|dir| nasm_flags << "-I #{dir}" }
+    elsif idir
+        nasm_flags << "-I #{idir}"
+    end
 
     $nasm_path_map[target] = target_path
     $nasm_src_map[target]  = src
 
-    nasm_file(obj_path, src)
+    nasm_file(obj_path, src, nasm_flags)
     link_file(target_path, obj_path)
 
-    task target => target_path do run_action.call(target_path) end
+    task target => target_path do sh target_path end
     add_interactive_task(target, src)
 end
 

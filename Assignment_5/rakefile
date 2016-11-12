@@ -1,0 +1,6 @@
+require '../tools/rake_nasm'
+
+nasm_target("a5", "src/a5_osx.asm", idir="../asmlib/src/")
+
+task :default => "a5"
+task :clean do sh "rm -f build/*" end

@@ -1,0 +1,7 @@
+require '../tools/rake_nasm'
+
+nasm_target("a4", "src/a4_osx.asm")
+nasm_target("array_sum", "src/array_sum_osx.asm")
+
+task :default => "a4"
+task :clean do sh "rm -f build/*" end
