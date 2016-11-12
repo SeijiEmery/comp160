@@ -13,7 +13,7 @@ def link_file (target, libs)
         sh "#{LD} -o #{target} #{libs}"
     end
 end
-def interactive_task (target, watch_list)
+def add_interactive_task (target, watch_list)
     task "i#{target}" => target do
         sh "when-changed -rs #{watch_list} -c 'clear; rake #{target}'"
     end
@@ -39,14 +39,14 @@ def nasm_target (target, src, run_action = method(:DEFAULT_RUN_ACTION))
     task target => target_path do
         run_action.call(target_path)
     end
-    interactive_task(target, src)
+    add_interactive_task(target, src)
 end
 def debug_task (name, target, script)
     target_path = $nasm_path_map[target]
     task name => target_path do
         sh "lldb #{target_path} -s #{script}"
     end
-    interactive_task(name, $nasm_src_map[target])
+    add_interactive_task(name, $nasm_src_map[target])
 end
 
 def view_file (file)
@@ -62,7 +62,7 @@ def listfile_task (name, target)
     task name => target_path do
         view_file(target_path)
     end
-    interactive_task(name, src)
+    add_interactive_task(name, src)
 end
 
 nasm_target("a3", "src/assignment_3_osx.asm")
