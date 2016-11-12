@@ -1,6 +1,12 @@
-NASM = "nasm -f macho"
-LD   = "ld -arch i386 -macosx_version_min 10.7.0 -no_pie"
+
 BUILD_DIR = "build"
+
+NASM = { :x86 => "nasm -f macho", :x64 => "nasm -f macho64"}
+LD   = { 
+    :x86 => "ld -arch i386 -macosx_version_min 10.7.0 -no_pie",
+    :x64 => "ld -macosx_version_min 10.7.0 -lSystem",
+}
+
 
 #
 # misc nasm-related helper functions
@@ -19,25 +25,25 @@ def join_args (args)
 end
 
 # Create a nasm <src files> => <object> task.
-def nasm_file (target, src, flags = nil)
+def nasm_file (arch, target, src, flags = nil)
     file target => src do
-        sh "#{NASM} #{join_args(flags)} -o #{target} #{join_args(src)}"
+        sh "#{NASM[arch]} #{join_args(flags)} -o #{target} #{join_args(src)}"
     end
 end
 
 # Create a nasm <src files> => <list file> task.
-def nasm_listfile (target, src, flags = nil)
+def nasm_listfile (arch, target, src, flags = nil)
     file target => src do
-        sh "#{NASM} #{join_args(flags)} -l #{target} #{join_args(src)}"
+        sh "#{NASM[arch]} #{join_args(flags)} -l #{target} #{join_args(src)}"
     end
 end
 
 # Create a ld <object files> => <executable> task.
 # No direct support for adding libraries, includes, etc., though that
 # can / should be possible using flags...?
-def link_file (target, libs, flags = nil)
+def link_file (arch, target, libs, flags = nil)
     file target => libs do
-        sh "#{LD} #{join_args(flags)} -o #{target} #{join_args(libs)}"
+        sh "#{LD[arch]} #{join_args(flags)} -o #{target} #{join_args(libs)}"
     end
 end
 
@@ -70,14 +76,13 @@ end
 $nasm_path_map = Hash.new
 $nasm_src_map  = Hash.new
 
-
 # Defines a nasm target / source file, and creates the following tasks:
 #   <BUILD_DIR>/<target>.o: compile .asm source files => .o using nasm_file call
 #   <BUILD_DIR>/<target>:   link .o file, libs => target using link_file call
 #   <target>:               builds + runs target in <BUILD_DIR>/<target>.
 #   i<target>:              runs target interactively when source files change
 #                           using python when-changed utility (add_interactive_task call) 
-def nasm_target (target, src, idir=nil)
+def nasm_target (target, src, idir=nil, libonly=false, arch=:x86)
     target_path = "#{BUILD_DIR}/#{target}"
     obj_path    = "#{target_path}.o"
 
@@ -91,11 +96,16 @@ def nasm_target (target, src, idir=nil)
     $nasm_path_map[target] = target_path
     $nasm_src_map[target]  = src
 
-    nasm_file(obj_path, src, nasm_flags)
-    link_file(target_path, obj_path)
+    nasm_file(arch, obj_path, src, nasm_flags)
 
-    task target => target_path do sh target_path end
-    add_interactive_task(target, src)
+    if libonly
+        task target => obj_path do end
+    else
+        link_file(arch, target_path, obj_path)
+
+        task target => target_path do sh target_path end
+        add_interactive_task(target, src)
+    end
 end
 
 # Adds a debug task, running lldb on an existing target, w/ optional lldb startup scripts.
@@ -116,11 +126,11 @@ end
 #   <name>:   generate + view the listfile using cat or w/e
 #   i<name>:  generate + view the listfile interactively, updating whenever
 #             source files change using when-changed.
-def listfile_task (name, target)
+def listfile_task (name, target, arch = :x86)
     target_path = "#{$nasm_path_map[target]}.lst"
     src         = $nasm_src_map[target]
 
-    nasm_listfile(target_path, src)
+    nasm_listfile(arch, target_path, src)
     task name => target_path do view_file(target_path) end
     add_interactive_task(name, src)
 end

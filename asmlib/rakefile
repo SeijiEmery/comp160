@@ -1,0 +1,10 @@
+require '../tools/rake_nasm'
+
+nasm_target('x64_syscall_test', 
+    'tests/osx64/syscall_test.asm',
+    idir = 'src/osx64/',
+    arch = :x64)
+
+
+task :default => 'x64_syscall_test'
+task :clean do sh "rm -f build/*" end
