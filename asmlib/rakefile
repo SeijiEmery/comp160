@@ -5,6 +5,10 @@ nasm_target('x64_syscall_test',
     idir = 'src/osx64/',
     arch = :x64)
 
+nasm_target('io32', 'tests/osx32/asmlib_tests.asm', idir='src/osx32/', arch=:x86)
+nasm_unittest('io32_test', 'io32',
+    'tests/input/asmlib32_io_input.txt',
+    'tests/expected/asmlib32_io_output.txt')
 
-task :default => 'x64_syscall_test'
+task :default => 'io32_test'
 task :clean do sh "rm -f build/*" end

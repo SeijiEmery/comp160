@@ -98,14 +98,37 @@ def nasm_target (target, src, idir=nil, libonly=false, arch=:x86)
 
     nasm_file(arch, obj_path, src, nasm_flags)
 
-    if libonly
-        task target => obj_path do end
-    else
+    # if libonly
+    #     task target => obj_path do end
+    # else
         link_file(arch, target_path, obj_path)
 
         task target => target_path do sh target_path end
         add_interactive_task(target, src)
+    # end
+end
+
+def nasm_unittest (name, target, input=nil, output=nil)
+    target_path = $nasm_path_map[target]
+    out_path    = "#{target_path}_output.txt"
+    src_files   = $nasm_src_map[target]
+
+    if input and output
+        task name => target_path do
+            sh "cat #{input} | #{target_path} > #{out_path}"
+            sh "diff #{out_path} #{output}"
+        end
+        task "update_#{target}" => target_path do
+            sh "cat #{input} | #{target_path} > #{output}"
+        end
+    elsif input
+        task name => target_path do
+            sh "cat #{input} | #{target_path}"
+        end
+    else
+        task name => target
     end
+    add_interactive_task(target, $nasm_src_map[target])
 end
 
 # Adds a debug task, running lldb on an existing target, w/ optional lldb startup scripts.
