@@ -13,8 +13,8 @@ def link_file (target, libs)
         sh "#{LD} -o #{target} #{libs}"
     end
 end
-def interactive_task (name, target, watch_list)
-    task name => target do
+def interactive_task (target, watch_list)
+    task "i#{target}" => target do
         sh "when-changed -rs #{watch_list} -c 'clear; rake #{target}'"
     end
 end
@@ -24,7 +24,7 @@ def DEFAULT_RUN_ACTION (file)
 end
 
 $nasm_path_map = Hash.new
-$nasm_src_map = Hash.new
+$nasm_src_map  = Hash.new
 
 def nasm_target (target, src, run_action = method(:DEFAULT_RUN_ACTION))
     target_path = "#{BUILD_DIR}/#{target}"
@@ -39,15 +39,30 @@ def nasm_target (target, src, run_action = method(:DEFAULT_RUN_ACTION))
     task target => target_path do
         run_action.call(target_path)
     end
-    interactive_task("i#{target}", target, src)
+    interactive_task(target, src)
 end
 def debug_task (name, target, script)
     target_path = $nasm_path_map[target]
-    # target_path = "#{BUILD_DIR}/#{target}"
     task name => target_path do
         sh "lldb #{target_path} -s #{script}"
     end
-    interactive_task("i#{name}", name, $nasm_src_map[target])
+    interactive_task(name, $nasm_src_map[target])
+end
+
+def view_file (file)
+    sh "cat #{file}"
+end
+def listfile_task (name, target)
+    target_path = "#{$nasm_path_map[target]}.lst"
+    src         = $nasm_src_map[target]
+
+    file target_path => src do
+        sh "#{NASM} -l #{target_path} #{src}"
+    end
+    task name => target_path do
+        view_file(target_path)
+    end
+    interactive_task(name, src)
 end
 
 nasm_target("a3", "src/assignment_3_osx.asm")
@@ -56,10 +71,9 @@ nasm_target("a3_min", "src/assignment_3_min_osx.asm")
 debug_task("debug", "a3_min", "src/lldb_setup_a3_min.txt")
 debug_task("auto_debug", "a3_min", "src/lldb_automated_a3_min.txt")
 
+listfile_task("listfile", "a3_min")
+
 task :default => "a3"
 task :clean do
     sh "rm build/*"
 end
-
-
-
