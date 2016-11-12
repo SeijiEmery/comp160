@@ -13,69 +13,48 @@ def link_file (target, libs)
         sh "#{LD} -o #{target} #{libs}"
     end
 end
-# def nasm_target (run_name, target, src)
-#     nasm_file("#{target}.o", src)
-#     link_file(target, "#{target}.o")
-#     task run_name => target do
-#         sh target
-#     end
-# end
+def interactive_task (name, target, watch_list)
+    task name => target do
+        sh "when-changed -rs #{watch_list} -c 'clear; rake #{target}'"
+    end
+end
 
-def nasm_target (target, src)
+def DEFAULT_RUN_ACTION (file)
+    sh file
+end
+
+$nasm_path_map = Hash.new
+$nasm_src_map = Hash.new
+
+def nasm_target (target, src, run_action = method(:DEFAULT_RUN_ACTION))
     target_path = "#{BUILD_DIR}/#{target}"
     obj_path    = "#{target_path}.o"
+
+    $nasm_path_map[target] = target_path
+    $nasm_src_map[target]  = src
 
     nasm_file(obj_path, src)
     link_file(target_path, obj_path)
 
     task target => target_path do
-        sh target_path
+        run_action.call(target_path)
     end
-    task "#{target}i" => target do
-        sh "when-changed -rs #{src} -c 'clear; rake #{target}'"
+    interactive_task("i#{target}", target, src)
+end
+def debug_task (name, target, script)
+    target_path = $nasm_path_map[target]
+    # target_path = "#{BUILD_DIR}/#{target}"
+    task name => target_path do
+        sh "lldb #{target_path} -s #{script}"
     end
+    interactive_task("i#{name}", name, $nasm_src_map[target])
 end
 
 nasm_target("a3", "src/assignment_3_osx.asm")
+nasm_target("a3_min", "src/assignment_3_min_osx.asm")
 
-
-# def run_target(name, file) do
-#     return do
-#         task name => target do
-#             sh target
-#         end
-#     end
-# end
-
-# nasm_project("a3")
-#     .build_dir("build")
-#     .src("src/assignment_3_osx.asm")
-#     .run_task(:a3_run)
-#     .irun_task(:a3i)
-#     .create()
-
-# nasm_target(:a3_run, "build/a3", "src/assignment_3_osx.asm")
-
-# def run_task (name, target)
-#     task name => target do
-#         sh target
-#     end
-# end
-# nasm_file("build/a3.o", "src/assignment_3_osx.asm")
-# link_file("build/a3", "build/a3.o")
-
-# file "build/a3.o" => "src/assignment_3_osx.asm" do
-#     sh "#{NASM} -o build/a3.o src/assignment_3_osx.asm"
-# end
-# file "build/a3" => "build/a3.o" do
-#     sh "#{LD} -o build/a3 build/a3.o"
-# end
-# task :a3_run => "build/a3" do
-#     sh "build/a3"
-# end
-# task :a3i => :a3_run do
-#     sh 'when-changed -rs "src" "clear; make a3_run"'
-# end
+debug_task("debug", "a3_min", "src/lldb_setup_a3_min.txt")
+debug_task("auto_debug", "a3_min", "src/lldb_automated_a3_min.txt")
 
 task :default => "a3"
 task :clean do
