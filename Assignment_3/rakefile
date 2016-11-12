@@ -1,0 +1,86 @@
+
+NASM = "nasm -f macho"
+LD   = "ld -arch i386 -macosx_version_min 10.7.0 -no_pie"
+BUILD_DIR = "build"
+
+def nasm_file (target, src)
+    file target => src do
+        sh "#{NASM} -o #{target} #{src}"
+    end
+end
+def link_file (target, libs)
+    file target => libs do
+        sh "#{LD} -o #{target} #{libs}"
+    end
+end
+# def nasm_target (run_name, target, src)
+#     nasm_file("#{target}.o", src)
+#     link_file(target, "#{target}.o")
+#     task run_name => target do
+#         sh target
+#     end
+# end
+
+def nasm_target (target, src)
+    target_path = "#{BUILD_DIR}/#{target}"
+    obj_path    = "#{target_path}.o"
+
+    nasm_file(obj_path, src)
+    link_file(target_path, obj_path)
+
+    task target => target_path do
+        sh target_path
+    end
+    task "#{target}i" => target do
+        sh "when-changed -rs #{src} -c 'clear; rake #{target}'"
+    end
+end
+
+nasm_target("a3", "src/assignment_3_osx.asm")
+
+
+# def run_target(name, file) do
+#     return do
+#         task name => target do
+#             sh target
+#         end
+#     end
+# end
+
+# nasm_project("a3")
+#     .build_dir("build")
+#     .src("src/assignment_3_osx.asm")
+#     .run_task(:a3_run)
+#     .irun_task(:a3i)
+#     .create()
+
+# nasm_target(:a3_run, "build/a3", "src/assignment_3_osx.asm")
+
+# def run_task (name, target)
+#     task name => target do
+#         sh target
+#     end
+# end
+# nasm_file("build/a3.o", "src/assignment_3_osx.asm")
+# link_file("build/a3", "build/a3.o")
+
+# file "build/a3.o" => "src/assignment_3_osx.asm" do
+#     sh "#{NASM} -o build/a3.o src/assignment_3_osx.asm"
+# end
+# file "build/a3" => "build/a3.o" do
+#     sh "#{LD} -o build/a3 build/a3.o"
+# end
+# task :a3_run => "build/a3" do
+#     sh "build/a3"
+# end
+# task :a3i => :a3_run do
+#     sh 'when-changed -rs "src" "clear; make a3_run"'
+# end
+
+task :default => "a3"
+task :clean do
+    sh "rm build/*"
+end
+
+
+
