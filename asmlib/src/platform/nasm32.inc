@@ -43,45 +43,40 @@
 ; Cross-platform typedefs. Use in replace of dword, etc.
 ;
 
-; Macro for getting "declaration type" (dword => dd, byte => db)
-; and type size for use in other macros
-%define TYPE_DECL(type) %{type}_decl_t
-%define TYPE_RES(type)  %{type}_res
-%define TYPE_SIZE(type) %{type}_sizeof
-
 ; Builtin types
-%define byte_decl_t  db
-%define word_decl_t  dw
-%define dword_decl_t dd
+%define decl_byte  db
+%define decl_word  dw
+%define decl_dword dd
 
-%define byte_sizeof  1
-%define word_sizeof  2
-%define dword_sizeof 4
+%define sizeof_byte  1
+%define sizeof_word  2
+%define sizeof_dword 4
 
-%define byte_res     resb
-%define word_res     resw
-%define dword_res    resd
+%define res_byte     resb
+%define res_word     resw
+%define res_dword    resd
 
 ; Native integer type
-%define int_t dword
-%define int_t_decl_t TYPE_DECL(int_t)
-%define int_t_sizeof TYPE_SIZE(int_t)
-%define int_t_res    TYPE_DECL(int_t)
+%define int_t        dword
+%define decl_int_t   decl_dword
+%define sizeof_int_t sizeof_dword
+%define res_int_t    res_dword
 
 ; Native character type (UTF-8; for UTF-16 define as word)
-%define char_t byte
-%define char_t_decl_t TYPE_DECL(char_t)
-%define char_t_sizeof TYPE_SIZE(char_t)
-%define char_t_res    TYPE_RES(char_t)
+%define char_t        byte
+%define decl_char_t   decl_byte
+%define sizeof_char_t sizeof_byte
+%define res_char_t    res_byte
 
 ; Native size type
-%define size_t dword
-%define size_t_decl_t TYPE_DECL(size_t)
-%define size_t_sizeof TYPE_SIZE(size_t)
-%define size_t_res    TYPE_RES(size_t)
+%define size_t        dword
+%define decl_size_t   decl_dword
+%define sizeof_size_t sizeof_dword
+%define res_size_t    res_dword
 
 ; Native pointer type
-%define ptr_t dword
-%define ptr_t_decl_t TYPE_DECL(ptr_t)
-%define ptr_t_sizeof TYPE_SIZE(ptr_t)
-%define ptr_t_res    TYPE_RES(ptr_t)
+%define ptr_t        dword
+%define decl_ptr_t   decl_dword
+%define sizeof_ptr_t sizeof_dword
+%define res_ptr_t    res_dword
+
