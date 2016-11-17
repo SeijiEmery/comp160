@@ -5,19 +5,15 @@
 ;
 ; Copyright 2016 Seiji Emery
 ;
-
-;
-; Note: at some point we will break this into multiple files and make our I/O
-; crossplatform (given nasm and 32-bit calls), but due to time consteaints,
-; I'm just dumping this into one file.
-;
-
-;
 ; Special options:
 ;
 ;   define ASMLIB_SETUP_MAIN to tell the library to create a start procedure
 ;   that will setup I/O, call exit(0) by default, and call a function named _main.
 ;
+
+%include "src/platform/nasm32.inc"
+%include "src/platform/nasm_macros.inc"
+%include "src/algorithms/hash_functions.inc"
 
 ;
 ; Config
@@ -29,23 +25,6 @@
 ;
 ; General purpose macros
 ;
-
-; DECL_FCN fcn_name macro:
-; Declares the start of a function using the label fcn_name, and creates a esp/ebp stack frame.
-%macro DECL_FCN 1
-%1: 
-    push ebp
-    mov  ebp,esp
-%endmacro
-
-; END_FCN fcn_name macro:
-; Declares the end of a function (fcn_name just included for readability).
-; Expands to instructions that exit the stack frame + returns (ret).
-%macro END_FCN 1
-    mov esp,ebp
-    pop ebp
-    ret
-%endmacro
 
 ; System calls, etc. Uses i386 osx conventions.
 %define STDIN  0

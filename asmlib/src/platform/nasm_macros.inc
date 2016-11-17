@@ -24,6 +24,7 @@
 %macro END_FCN 1
     mov ksp, kbp
     pop kbp
+    ret
 %endmacro
 
 ; STACK_ALLOC( size )
@@ -39,9 +40,9 @@
 
 ; Array structure
 struc Array
-    .ptr:          TYPE_RES(ptr_t)
-    .length:       TYPE_RES(dword)
-    .element_size: TYPE_RES(dword)
+    .ptr:          res_ptr_t 1
+    .length:       res_dword 1
+    .element_size: res_dword 1
 endstruc
 
 ; CREATE_ARRAY( location, array_ptr, array_length, array_elementSize )

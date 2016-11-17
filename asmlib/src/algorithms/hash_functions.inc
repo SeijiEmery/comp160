@@ -28,16 +28,19 @@
 ;   hash(0) = 5381
 hash_djb2:
     mov  kax, 5381
-    push kdx            ; reserve 1 register: kdx
+    push kdx            ; reserve 2 registers: kdx, kbx
+    push kbx
+    xor kbx, kbx
     test ecx, ecx
     jz  .exit
-    .loop:
+    .l1:
         mov kdx, kax    ; kax = kax * 33 ^ str[i]
         shl kdx, 5      ; =>  kax = (kax + kax * 32) ^ str[i]
         add kax, kdx    ; =>  kax += (kax << 5) ^ str[i]
-        xor kax, char_t [ksi]
-        add ksi, TYPE_SIZE(char_t)
-        loop ecx
+        mov bl, [ksi]
+        inc ksi
+        xor kax, kbx
+        loop .l1
     .exit:
     pop kdx
     ret
@@ -55,17 +58,18 @@ hash_sbdm:
     push kbx
     test ecx, ecx
     jz .exit
-    .loop:
+    .l1:
         mov kdx, kax   ; kax = kax * 65599 + str[i]
         mov kbx, kax   ; => kax = (kax << 6 + kax << 16 - kax) + str[i]
         shl kdx, 6     ; where:  kdx = kax << 6
         shl kbx, 16    ;         kbx = kax << 16
         add kdx, kbx   ; => kax = (kdx + kbx - kax) + byte [ksi]
         sub kdx, kax
-        add kdx, char_t [ksi]
-        add ksi, TYPE_SIZE(char_t)
-        mov kax, kdx
-        loop ecx
+        xor kax, kax
+        mov al, [ksi]
+        inc ksi
+        add kax, kdx
+        loop .l1
     .exit:
     pop kbx
     pop kdx
