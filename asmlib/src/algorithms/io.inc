@@ -6,11 +6,14 @@
 ;   platform/nasm_macros.inc
 ;
 
+
+section .text
+
 ; flushIO:
-;   in eax fd
-;   in edi buffer_ptr
-;   in esi buffer_start
-;   in ecx buffer_size
+;   in kax fd
+;   in kdi buffer_ptr
+;   in ksi buffer_start
+;   in kcx buffer_size
 flushIO:
     sub kdi, ksi
     jle .skip
@@ -25,7 +28,7 @@ flushIO:
 
 ; Implementation note: All write*** integer algorithms work backwards:
 ; we repeatedly divide the integer by its base, and write the modulo
-; to some output (the edi pointer).
+; to some output (the kdi pointer).
 ;
 ; This produces _reversed_ output, since we're writing what should be
 ; the last / lowest digit first (and we're used to reading left -> right,
@@ -33,140 +36,140 @@ flushIO:
 ;
 ; For writeHex <N bytes>, we know how many characters we're writing ahead
 ; of time (it's num_bytes * 2, since each digit repr by a 2-digit hex #),
-; so we can just advance edi by ecx * 2, and write the digits in reverse.
+; so we can just advance kdi by kcx * 2, and write the digits in reverse.
 ;
 ; For writeDecimal, we don't know how many characters we'll be writing,
 ; so we just write each digit out reversed, then explicitely re-reverse
 ; the output in a second loop.
 ;
 
-; Writes ecx bytes from the value in eax to edi as a hexadecimal integer.
+; Writes kcx bytes from the value in kax to kdi as a hexadecimal integer.
 
-; writeHex( eax value, ecx num_digits, edi out_buffer )
-;   does not preserve eax / ecx (use WRITE_HEX_**** to preserve both)
+; writeHex( kax value, kcx num_digits, kdi out_buffer )
+;   does not preserve kax / kcx (use WRITE_HEX_**** to preserve both)
 DECL_FCN writeHex
-    cmp ecx, 8    ; clamp ecx to [0, 8].
+    cmp kcx, 8    ; clamp kcx to [0, 8].
     jg  .clampTo8
     jmp .skip
     .clampTo8:
-        mov ecx, 8
+        mov kcx, 8
     .skip:
 
-    shl ecx, 1     ; ecx *= 2
-    push ecx
-    add edi, ecx   ; edi += num_bytes * 2
+    shl kcx, 1     ; kcx *= 2
+    push kcx
+    add kdi, kcx   ; kdi += num_bytes * 2
 
     .writeHalfByte:
-        dec edi
-        mov dl, al     ; load lowest byte of eax into dl
+        dec kdi
+        mov dl, al     ; load lowest byte of kax into dl
         and dl, 0xf    ; and use bitwise op to get lowest 4 bits
         cmp dl, 0xa
         jl .l1
              add dl, 0x7    ; if dl >= 10, add 0x37 (10 + 0x37 = 'A')
         .l1: add dl, 0x30   ; if dl <  10, add 0x30 (10 + 0x30 = '0')
-        mov [edi], dl
-        shr eax, 4     ; eax /= 16
+        mov [kdi], dl
+        shr kax, 4     ; kax /= 16
         loop .writeHalfByte
 
-    pop ecx
-    add edi, ecx  ; edi += num_bytes * 2
+    pop kcx
+    add kdi, kcx  ; kdi += num_bytes * 2
 END_FCN writeHex
 
-; writeAsciiStrz( esi str, edi out_buffer )
-;   does not preserve esi (use WRITE_STR for register preservation)
+; writeAsciiStrz( ksi str, kdi out_buffer )
+;   does not preserve ksi (use WRITE_STR for register preservation)
 DECL_FCN writeAsciiStrz
-    push eax
+    push kax
     .l1:
-        mov al, [esi]
+        mov al, [ksi]
         cmp al, 0
         je .end
-        mov [edi], al
-        inc esi
-        inc edi
+        mov [kdi], al
+        inc ksi
+        inc kdi
         jmp .l1
     .end:
-    pop eax
+    pop kax
 END_FCN writeAsciiStrz
 
-; writeAsciiStrz( esi str, ecx num_bytes, edi out_buffer )
-;   does not preserve esi / ecx (use WRITE_STR for register preservation)
+; writeAsciiStrz( ksi str, kcx num_bytes, kdi out_buffer )
+;   does not preserve ksi / kcx (use WRITE_STR for register preservation)
 DECL_FCN writeAsciiStr
-    push eax
-    cmp ecx, 0
+    push kax
+    cmp kcx, 0
     jle .end
     .l1:
-        mov al, [esi]
-        mov [edi], al
-        inc esi
-        inc edi
+        mov al, [ksi]
+        mov [kdi], al
+        inc ksi
+        inc kdi
         loop .l1
     .end:
-    pop eax
+    pop kax
 END_FCN writeAsciiStr
 
-; writeDecimal32( eax value, edi out_buffer )
-;   does not preserve eax (use WRITE_DEC for register preservation)
+; writeDecimal32( kax value, kdi out_buffer )
+;   does not preserve kax (use WRITE_DEC for register preservation)
 DECL_FCN writeDecimal32
-    test eax, 0x80000000     ; Handle negative numbers:
+    test kax, 0x80000000     ; Handle negative numbers:
     jz .isPositive
-        xor eax, 0xffffffff
-        inc eax
-        mov [edi], byte 45   ; negative sign '-'
-        inc edi
+        xor kax, 0xffffffff
+        inc kax
+        mov [kdi], byte 45   ; negative sign '-'
+        inc kdi
     .isPositive:
     call writeUnsignedDecimal32
 END_FCN writeDecimal32
 
 
-; writeUnsignedDecimal32( eax value, edi out_buffer )
-;   does not preserve eax (use WRITE_DEC for register preservation)
+; writeUnsignedDkcimal32( kax value, kdi out_buffer )
+;   does not preserve kax (use WRITE_DEC for register preservation)
 DECL_FCN writeUnsignedDecimal32
-    push ebx
-    push edx
-    push esi
+    push kbx
+    push kdx
+    push ksi
 
-    cmp eax, 0     ; special case for eax == 0 (write '0' and return)
+    cmp kax, 0     ; special case for kax == 0 (write '0' and return)
     je  .writeZero
 
-    mov ebx, 10
-    push edi       ; save start ptr
+    mov kbx, 10
+    push kdi       ; save start ptr
     .writeDigitsReversed:
-        xor edx, edx    ; clear edx
-        idiv ebx        ; edx:eax /= ebx (10). quotient stored in eax, modulo in edx.
+        xor kdx, kdx    ; clear kdx
+        idiv kbx        ; kdx:kax /= kbx (10). quotient stored in kax, modulo in kdx.
         add dl, 0x30    ; [0-9] + 0x30 => ascii '0'-'9'
-        mov [edi], dl   ; write to edi
-        inc edi
-        cmp eax, 0      ; repeat until eax == 0
+        mov [kdi], dl   ; write to kdi
+        inc kdi
+        cmp kax, 0      ; repeat until kax == 0
         jne .writeDigitsReversed
 
-    pop esi        ; restore start ptr (esi) and save end ptr (edi)
-    push edi
-    dec edi        ; must move back 1 for loop (normally, edi points to the 
+    pop ksi        ; restore start ptr (ksi) and save end ptr (kdi)
+    push kdi
+    dec kdi        ; must move back 1 for loop (normally, kdi points to the 
                    ; _next_ chr, but here we want it to point to the last written chr)
     .reverseDigits:
-        cmp esi, edi    ; until esi >= edi:
+        cmp ksi, kdi    ; until ksi >= kdi:
         jge .endReverse
 
-        mov al, [esi]   ; swap [esi], [edi]
-        mov dl, [edi]
-        mov [esi], dl
-        mov [edi], al
-        inc esi         ; ++esi, --edi
-        dec edi
+        mov al, [ksi]   ; swap [ksi], [kdi]
+        mov dl, [kdi]
+        mov [ksi], dl
+        mov [kdi], al
+        inc ksi         ; ++ksi, --kdi
+        dec kdi
         jmp .reverseDigits
     .endReverse:
-    pop edi        ; restore end ptr after reversal
+    pop kdi        ; restore end ptr after reversal
     jmp .end
 
     .writeZero:
-        mov [edi], byte 0x30 ; write '0'
-        inc edi
+        mov [kdi], byte 0x30 ; write '0'
+        inc kdi
         jmp .end
 
     .end:
-    pop esi
-    pop edx
-    pop ebx
+    pop ksi
+    pop kdx
+    pop kbx
 END_FCN writeDecimal32
 
 

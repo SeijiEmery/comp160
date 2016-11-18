@@ -16,32 +16,32 @@
 ; then instantiate TABLE_PRINT_ELEMS (no arguments)
 
 %macro TABLE_PRINT_ELEMS 0
-    push eax
-    push ecx
-    mov ecx, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
+    push kax
+    push kcx
+    mov kcx, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
     %%printTable:
         ; Branch to write Eol + flush buffer every N elements.
         ; Note: this gets triggered on the first run, assuming NUM_COLS + 1 is a power of 2.
-        mov eax, ecx
-        and eax, TABLE_NUM_COLS   ; write eol every N elements
+        mov kax, kcx
+        and kax, TABLE_NUM_COLS   ; write eol every N elements
         jz %%writeLine
-        push ecx
+        push kcx
 
         TABLE_EACH_ELEMENT
 
-        pop ecx
+        pop kcx
         loop %%printTable
     %%writeLine:
-        sub ecx, 1
+        sub kcx, 1
         jle %%endTable
-        push ecx 
+        push kcx 
 
-        mov eax, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
-        sub eax, ecx
-        TABLE_EACH_LINE eax
-        pop ecx
+        mov kax, TABLE_NUM_ROWS * (TABLE_NUM_COLS + 1)
+        sub kax, kcx
+        TABLE_EACH_LINE kax
+        pop kcx
         jmp %%printTable
     %%endTable:
-    pop ecx
-    pop eax
+    pop kcx
+    pop kax
 %endmacro

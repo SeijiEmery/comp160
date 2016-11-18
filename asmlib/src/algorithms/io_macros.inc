@@ -6,7 +6,7 @@
 
 ; SET_IO( fd, buffer, buf_sz )
 %macro SET_IO 3
-    mov edi, %2
+    mov kdi, %2
 %endmacro
 
 ; FLUSH_IO( fd, buffer, buf_sz )
@@ -21,13 +21,13 @@
 %endmacro
 
 %macro WRITE_HEX_N 2
-    push eax
-    push ecx
-    mov eax, %1
-    mov ecx, %2
+    push kax
+    push kcx
+    mov kax, %1
+    mov kcx, %2
     call writeHex
-    pop eax
-    pop ecx
+    pop kax
+    pop kcx
 %endmacro
 
 %macro WRITE_HEX_64 1
@@ -47,36 +47,36 @@
 %endmacro
 
 %macro WRITE_EOL 0
-    mov [edi], BYTE 10
-    inc edi
+    mov [kdi], BYTE 10
+    inc kdi
 %endmacro
 
 %macro WRITE_0x 0
-    mov [edi+0], BYTE 48
-    mov [edi+1], BYTE 120
-    add edi, 2
+    mov [kdi+0], BYTE 48
+    mov [kdi+1], BYTE 120
+    add kdi, 2
 %endmacro
 
 %macro WRITE_CHR 1
-    mov [edi], byte %1
-    inc edi
+    mov [kdi], byte %1
+    inc kdi
 %endmacro
 
 %macro WRITE_STR 2
-    push esi
-    push ecx
-    mov esi, %1
-    mov ecx, %2
+    push ksi
+    push kcx
+    mov ksi, %1
+    mov kcx, %2
     call writeAsciiStr
-    pop ecx
-    pop esi
+    pop kcx
+    pop ksi
 %endmacro
 
 %macro WRITE_STRZ 1
-    push esi
-    mov esi, %1
+    push ksi
+    mov ksi, %1
     call writeAsciiStrz
-    pop esi
+    pop ksi
 %endmacro
 
 %macro WRITE_STR_LIT 1
@@ -87,15 +87,15 @@ section .text
 %endmacro
 
 %macro WRITE_DEC 1
-    push eax
-    mov eax, %1
+    push kax
+    mov kax, %1
     call writeDecimal32
-    pop eax
+    pop kax
 %endmacro
 
 %macro SET_WRITE_TARGET 1
-    push eax
-    mov eax, %1
+    push kax
+    mov kax, %1
     call setWriteTarget
-    pop eax
+    pop kax
 %endmacro
