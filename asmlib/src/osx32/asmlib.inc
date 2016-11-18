@@ -19,6 +19,7 @@ section .text
 %include "src/algorithms/hash_functions.inc"
 %include "src/algorithms/random.inc"
 %include "src/algorithms/printutils.inc"
+%include "src/algorithms/algorithms.inc"
 
 ;
 ; Config
@@ -56,6 +57,6 @@ start:
     call _main
     ; call flushIO
     mov kax, 0
-    call exit
+    call _sys_exit
 %endif
 

@@ -168,10 +168,40 @@ END_FCN  WriteInt
 
 ; WriteString( edx str )
 DECL_FCN WriteString
+    pushad
     IO_ENTER_STDOUT
-    WRITE_STRZ edx
+        WRITE_STRZ edx
     IO_EXIT_STDOUT
+    popad
+    ; pushad
+    ; mov esi, edx
+    ; mov edi, stdout_buffer
+    ; mov ecx, IO_BUFFER_SIZE
+    ; call strncpy
+
+    ; mov esi, edi
+    ; sub edi, stdout_buffer
+    ; mov ecx, edi
+    ; mov eax, STDOUT
+    ; call _sys_write
+    ; popad
 END_FCN  WriteString
+
+; ReadString
+;   inout edx buffer
+;   in    ecx buffer_size
+;   out   eax bytes_read
+DECL_FCN ReadString
+    push edx
+    push esi
+
+    mov eax, 1
+    mov esi, edx
+    call _sys_read
+    
+    pop esi
+    pop edx
+END_FCN ReadString
 
 ;
 ; Random functions

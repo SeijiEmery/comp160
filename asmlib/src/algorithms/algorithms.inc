@@ -23,13 +23,27 @@ strncpy:
     pop kax
     ret
 
+; function strlen
+;   inout ksi str
+;   out   kcx length
+strlen:
+    push ksi
+    mov kcx, -1
+    sub al, al
+    cld
+    repne scasb
+    not kcx
+    dec kcx
+    pop ksi
+    ret
+
 ; memcmp
 ;   inout kdi mem1
 ;   in    ksi mem2
 ;   in    kcx num_bytes
-memcmp:
-    cld
-    cmp rcx, rcx
-    repe cmpsb
-    ret
+; memcmp:
+;     cld
+;     cmp rcx, rcx
+;     repe cmpsb
+;     ret
 
