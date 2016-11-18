@@ -29,18 +29,19 @@ section .text
 
 ; void exit(int rval);
 %macro SYSCALL_EXIT 1
-    EXEC_SYSCALL SYS_EXIT, %1, dword 0
+    mov eax, %1
+    call _sys_exit
 %endmacro
 
 ; user_ssize_t write(int fd, user_addr_t cbuf, user_size_t nbyte)
 %macro SYSCALL_WRITE 3
-    EXEC_SYSCALL SYS_WRITE, %1, %2, %3, dword 0
+    pushad
+    mov eax, %1
+    mov esi, %2
+    mov ecx, %3
+    call _sys_write
+    popad
 %endmacro
-
-; function exit (eax exit_code)
-DECL_FCN exit
-    EXEC_SYSCALL SYS_EXIT, kax, dword 0
-END_FCN  exit
 
 ;
 ; Library implementation

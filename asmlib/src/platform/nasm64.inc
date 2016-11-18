@@ -1,4 +1,4 @@
-; nasm32.inc
+; nasm64.inc
 ;
 ; Provides defines for writing cross-platform 32 / 64 bit code in nasm.
 ; Defines the following:
@@ -23,21 +23,21 @@
 ;   Use %ifdef PLATFORM_x86 / %ifdef PLATFORM_x64 directives to guard 
 ;   platform-specific code.
 ;
-%define PLATFORM_x86
+%define PLATFORM_x64
 
 ;
 ; Cross-platform register defines:
 ; k** registers = e** on 32-bit, r** on 64-bit.
 ; Use these for pointer registers, etc.,
 ;
-%define kax eax
-%define kbx ebx
-%define kcx ecx
-%define kdx edx
-%define ksp esp
-%define kbp ebp
-%define ksi esi
-%define kdi edi
+%define kax rax
+%define kbx rbx
+%define kcx rcx
+%define kdx rdx
+%define ksp rsp
+%define kbp rbp
+%define ksi rsi
+%define kdi rdi
 
 ;
 ; Cross-platform typedefs. Use in replace of dword, etc.
@@ -47,20 +47,23 @@
 %define decl_byte  db
 %define decl_word  dw
 %define decl_dword dd
+%define decl_qword dq
 
 %define sizeof_byte  1
 %define sizeof_word  2
 %define sizeof_dword 4
+%define sizeof_qword 8
 
 %define res_byte     resb
 %define res_word     resw
 %define res_dword    resd
+%define res_qword    resq
 
 ; Native integer type
-%define int_t        dword
-%define decl_int_t   decl_dword
-%define sizeof_int_t sizeof_dword
-%define res_int_t    res_dword
+%define int_t        qword
+%define decl_int_t   decl_qword
+%define sizeof_int_t sizeof_qword
+%define res_int_t    res_qword
 
 ; Native character type (UTF-8; for UTF-16 define as word)
 %define char_t        byte
@@ -69,21 +72,27 @@
 %define res_char_t    res_byte
 
 ; Native size type
-%define size_t        dword
-%define decl_size_t   decl_dword
-%define sizeof_size_t sizeof_dword
-%define res_size_t    res_dword
+%define size_t        qword
+%define decl_size_t   decl_qword
+%define sizeof_size_t sizeof_qword
+%define res_size_t    res_qword
 
 ; Native pointer type
-%define ptr_t        dword
-%define decl_ptr_t   decl_dword
-%define sizeof_ptr_t sizeof_dword
-%define res_ptr_t    res_dword
+%define ptr_t        qword
+%define decl_ptr_t   decl_qword
+%define sizeof_ptr_t sizeof_qword
+%define res_ptr_t    res_qword
 
-; Syscalls
-SYS_EXIT  equ 1
-SYS_READ  equ 3
-SYS_WRITE equ 4
+%ifdef PLATFORM_OSX
+    SYS_CLASS_UNIX equ 0x2000000
+    SYS_EXIT  equ 1 | SYS_CLASS_UNIX
+    SYS_READ  equ 3 | SYS_CLASS_UNIX
+    SYS_WRITE equ 4 | SYS_CLASS_UNIX
+%else
+    SYS_EXIT  equ 1
+    SYS_READ  equ 3
+    SYS_WRITE equ 4
+%endif
 
 ; Stdout, etc
 STDIN  equ 0
@@ -94,42 +103,36 @@ STDERR equ 2
 ; System calls (uniform interface across 32 / 64 bit)
 ;
 
-%macro PUSH_STACK 0
-    push ebp
-    mov ebp, esp
-%endmacro
-
-
-
 ; function exit
-;   in eax exit_code
+;   in rax exit_code
 _sys_exit:
-    push eax
-    sub esp, 4
-    mov eax, SYS_EXIT
-    int 0x80
+    mov rdi, rax
+    mov rax, SYS_EXIT
+    syscall
     ret
 
 ; function write
-;   in eax fd
-;   in esi buffer
-;   in ecx length
+;   in rax fd
+;   in rsi buffer
+;   in rcx length
 _sys_write:
-    push ecx
-    push esi 
-    push eax
-    sub esp, 4
-    mov eax, SYS_WRITE
-    int 0x80
-    add esp, 16
+    push rdx
+    mov  rdx, rcx
+    mov  rdi, rax
+    mov  rax, SYS_WRITE
+    syscall
+    pop  rdx
     ret
 
+; function read
+;   in rax fd
+;   in rdi buffer
+;   in rcx length
 _sys_read:
-    push ecx
-    push esi
-    push eax
-    sub esp, 4
-    mov eax, SYS_READ
-    int 0x80
-    add esp, 16
+    push rdx
+    mov rdx, rcx
+    mov rdi, rax
+    mov rax, SYS_READ
+    syscall
+    pop rcx
     ret

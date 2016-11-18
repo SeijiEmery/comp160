@@ -21,8 +21,8 @@ flushIO:
         jle .sizeOk
         mov kdi, kcx
         .sizeOk:
-        ; write( fd, buffer_start, buffer_used_length )
-        EXEC_SYSCALL SYS_WRITE, kax, ksi, kdi
+        mov kcx, kdi
+        call _sys_write
     .skip:
     ret
 
@@ -119,7 +119,6 @@ DECL_FCN writeDecimal32
     .isPositive:
     call writeUnsignedDecimal32
 END_FCN writeDecimal32
-
 
 ; writeUnsignedDkcimal32( kax value, kdi out_buffer )
 ;   does not preserve kax (use WRITE_DEC for register preservation)
