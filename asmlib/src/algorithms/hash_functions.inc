@@ -1,5 +1,5 @@
 ;
-; hash_functions.inc
+; asmlib/algorithms/hash_functions.inc
 ; 
 ; Implements 2 string hash functions: djb2, sbdm, courtesy of
 ; http://www.cse.yorku.ca/~oz/hash.htm

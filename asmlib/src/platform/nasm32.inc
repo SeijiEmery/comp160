@@ -80,3 +80,29 @@
 %define sizeof_ptr_t sizeof_dword
 %define res_ptr_t    res_dword
 
+; Syscalls
+SYS_EXIT  equ 1
+SYS_WRITE equ 4
+
+; Stdout, etc
+STDIN  equ 0
+STDOUT equ 1
+STDERR equ 2
+
+; osx 32-bit syscalls. 
+; Note: this uses a 16-byte aligned stack, apparently:
+; https://filippo.io/making-system-calls-from-assembly-in-mac-os-x/
+%macro EXEC_SYSCALL 2-*
+    mov eax, %1
+    push ebp
+    mov ebp, esp
+    and esp, 0xffffffff
+    %rep %0-1
+        %rotate -1
+        push %1
+    %endrep
+    sub esp, 4
+    int 0x80
+    mov esp, ebp
+    pop ebp
+%endmacro    

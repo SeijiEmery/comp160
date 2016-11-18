@@ -45,22 +45,22 @@ writeAsciiStrz:
 
 testing contract for syscall write
 
-stack offset: -1073743045 16 Hello, World!
-stack offset: -1073743046 15 Hello, World!
-stack offset: -1073743047 14 Hello, World!
-stack offset: -1073743048 13 Hello, World!
-stack offset: -1073743049 12 Hello, World!
-stack offset: -1073743050 11 Hello, World!
-stack offset: -1073743051 10 Hello, World!
-stack offset: -1073743052 9 Hello, World!
-stack offset: -1073743053 8 Hello, World!
-stack offset: -1073743054 7 Hello, World!
-stack offset: -1073743055 6 Hello, World!
-stack offset: -1073743056 5 Hello, World!
-stack offset: -1073743057 4 Hello, World!
-stack offset: -1073743058 3 Hello, World!
-stack offset: -1073743059 2 Hello, World!
-stack offset: -1073743060 1 Hello, World!
+stack offset: -1073743157 16 Hello, World!
+stack offset: -1073743158 15 Hello, World!
+stack offset: -1073743159 14 Hello, World!
+stack offset: -1073743160 13 Hello, World!
+stack offset: -1073743161 12 Hello, World!
+stack offset: -1073743162 11 Hello, World!
+stack offset: -1073743163 10 Hello, World!
+stack offset: -1073743164 9 Hello, World!
+stack offset: -1073743165 8 Hello, World!
+stack offset: -1073743166 7 Hello, World!
+stack offset: -1073743167 6 Hello, World!
+stack offset: -1073743168 5 Hello, World!
+stack offset: -1073743169 4 Hello, World!
+stack offset: -1073743170 3 Hello, World!
+stack offset: -1073743171 2 Hello, World!
+stack offset: -1073743172 1 Hello, World!
 done
 
 Test setIO / flushIO
