@@ -80,8 +80,8 @@ allocNewPage:
     ret
 
 ; pagedAlloc
-;   in ecx  pageContext
-;   in eax  allocSize
+;   in  ecx  pageContext
+;   in  eax  allocSize
 ;   out eax allocatedPtr
 pagedAlloc:
     push edx  ; Save registers

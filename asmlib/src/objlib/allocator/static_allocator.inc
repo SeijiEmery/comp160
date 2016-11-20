@@ -27,7 +27,7 @@
 section .data
 
 ; StaticAllocator class (implements IAllocator)
-Class_StaticAllocator: istruc MStaticAllocator
+Class_StaticAllocator: istruc IAllocator
     DECL_Class_IObject TYPEID_STATIC_ALLOCATOR, MStaticAllocator
     DECL_Class_ctor    MStaticAllocator_ctor
     DECL_Class_dtor    null_method
