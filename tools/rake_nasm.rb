@@ -27,6 +27,7 @@ end
 # Create a nasm <src files> => <object> task.
 def nasm_file (arch, target, src, flags = nil)
     file target => src do
+        puts "\nBuilding #{target}"
         sh "#{NASM[arch]} #{join_args(flags)} -o #{target} #{join_args(src)}"
     end
 end
@@ -34,6 +35,7 @@ end
 # Create a nasm <src files> => <list file> task.
 def nasm_listfile (arch, target, src, flags = nil)
     file target => src do
+        puts "\nBuilding #{target}"
         sh "#{NASM[arch]} #{join_args(flags)} -l #{target} #{join_args(src)}"
     end
 end
@@ -54,6 +56,15 @@ def add_interactive_task (target, watch_list)
         sh "when-changed -rs #{join_args(watch_list)} -c 'clear; rake #{target}'"
     end
 end
+
+def nasm_run (name, target)
+    task name => target do
+        puts "\nRunning #{name}"
+        sh target
+    end
+end
+
+
 
 # View a file. Could use open (osx), or cat (*nix); the latter is simpler
 # and less intrusive, so we'll just go with that.
@@ -76,13 +87,18 @@ end
 $nasm_path_map = Hash.new
 $nasm_src_map  = Hash.new
 
+# Create default unittest target
+task :all_tests do
+    puts "\nAll tests passed."
+end
+
 # Defines a nasm target / source file, and creates the following tasks:
 #   <BUILD_DIR>/<target>.o: compile .asm source files => .o using nasm_file call
 #   <BUILD_DIR>/<target>:   link .o file, libs => target using link_file call
 #   <target>:               builds + runs target in <BUILD_DIR>/<target>.
 #   i<target>:              runs target interactively when source files change
 #                           using python when-changed utility (add_interactive_task call) 
-def nasm_target (target, src, idir=nil, libonly=false, arch=:x86)
+def nasm_target (target, src, idir=nil, arch=:x86, libonly=false)
     target_path = "#{BUILD_DIR}/#{target}"
     obj_path    = "#{target_path}.o"
 
@@ -102,8 +118,8 @@ def nasm_target (target, src, idir=nil, libonly=false, arch=:x86)
     #     task target => obj_path do end
     # else
         link_file(arch, target_path, obj_path)
-
-        task target => target_path do sh target_path end
+        nasm_run(target, target_path)
+        # task target => target_path do sh target_path end
         add_interactive_task(target, src)
     # end
 end
@@ -115,20 +131,26 @@ def nasm_unittest (name, target, input=nil, output=nil)
 
     if input and output
         task name => target_path do
+            puts "\nRunning #{name}"
             sh "cat #{input} | #{target_path} > #{out_path}"
             sh "diff #{out_path} #{output}"
         end
         task "update_#{target}" => target_path do
+            puts "\nUpdating output for #{name}"
             sh "cat #{input} | #{target_path} > #{output}"
         end
     elsif input
         task name => target_path do
+            puts "\nRunning #{name}"
             sh "cat #{input} | #{target_path}"
         end
     else
         task name => target
     end
     add_interactive_task(target, $nasm_src_map[target])
+
+    # add to tests
+    task :all_tests => name
 end
 
 # Adds a debug task, running lldb on an existing target, w/ optional lldb startup scripts.

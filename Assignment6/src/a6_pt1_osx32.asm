@@ -1,7 +1,14 @@
-;
 ; Assignment 6, part 1
 ;   Encrypts / decrypts a string using an encryption key (plaintext password) 
 ;   and XOR-ing algorithm.
+;
+; Target platform: osx, 32-bit
+;   depends on asmlib (../asmlib/)
+;   uses rake (a ruby-based build system) for nasm builds
+;
+; Author: Seiji Emery (student: M00202623)
+; Creation Date: whatever; ported from win32 version.
+; Revisions, etc: https://github.com/SeijiEmery/comp160/tree/master/Assignment6
 ;
 
 %define ASMLIB_SETUP_MAIN
