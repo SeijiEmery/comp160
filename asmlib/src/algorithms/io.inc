@@ -172,12 +172,72 @@ DECL_FCN writeUnsignedDecimal32
 END_FCN writeDecimal32
 
 
+; parseInt
+;   in ksi null_terminated_string
+;   in kbx base (must be 10 or 16)
+;   out kax value
+DECL_FCN parseInt
+section .data
+    ; Value lookup tables
+    .decimalAsciiTable:
+        db 0, 1, 2, 3, 4, 5, 6, 7, 8, 9  ; 0-9: [48, 57]
+        times 70 db 16                   ;      [58, 127]
+    .hexAsciiTable:
+        db 0, 1, 2, 3, 4, 5, 6, 7, 8, 9  ; 0-9: [48, 57]
+        times 7 db 16                    ;      [58, 64]
+        db 10, 11, 12, 13, 14, 15        ; A-F: [65, 70]
+        times 26 db 16                   ;      [71, 96]
+        db 10, 11, 12, 13, 14, 15        ; a-f: [97, 102]
+        times 25 db 16                   ;      [103, 127]
+section .text
+    push kdx    ; Save registers
+    push kcx
+    push kdi
+    
+    cmp kbx, 16
+    jz .useHexTable
+        mov kdi, .decimalAsciiTable
+        jmp .l1
+    .useHexTable:
+        mov kdi, .hexAsciiTable
+    .l1:
 
+    cmp [ksi], byte '-'
+    jnz  .positive
+    .negative:
+        inc ksi
+        call .doParse
+        neg kax
+        jmp .end
+    .positive:
+        call .doParse
+        jmp  .end
+    .doParse:
+        xor kax, kax
+        xor kdx, kdx
+        xor kcx, kcx
 
+        .readDigits:
+            ; inc kax
+            mov cl, [ksi]
+            sub cl, 48
+            jl .endDigits       ; chr < '0' (min char)
+            cmp cl, 102
+            jg .endDigits       ; chr > 'f' (max char)
 
+            mov  cl, [kdi + kcx] ; select digit value using lookup table
+            test cl, 16
+            jnz .endDigits      ; bit 4 set => invalid value
 
-
-
-
-
+            mul kbx             ; multiply accumulator by base
+            add kax, kcx        ; and add value of this digit
+            inc ksi
+            jmp .readDigits
+        .endDigits:
+        ret
+    .end:
+    pop kdi
+    pop kcx    ; Restore registers
+    pop kdx
+END_FCN  parseInt 
 

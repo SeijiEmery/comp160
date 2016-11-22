@@ -8,9 +8,9 @@
 
 ; DECL_STRING( label, string )
 %macro DECL_STRING 2
-%1: char_t %2, 0
-%1.length: equ ($ - %1) / TYPE_SIZE(char_t)
-%1.sizeof: equ TYPE_SIZE(%2)
+%1: decl_char_t %2, 0
+%1.length: equ ($ - %1) / sizeof_char_t
+%1.sizeof: equ sizeof_char_t
 %endmacro
 
 ; DECL_FCN( name )

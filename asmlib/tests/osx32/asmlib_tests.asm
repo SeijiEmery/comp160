@@ -30,7 +30,7 @@ section .text
 
 %macro WRITE_STR_LIT2 1
 section .data
-    %%str: db %1
+    %%str: db %1,0
 section .text
     WRITE_STRZ %%str
 %endmacro
@@ -56,6 +56,7 @@ DECL_FCN runAllTests
     call test_syscall_write_contract
     call test_set_flush_io
     call test_lcg_random
+    call test_parseInt
     WRITE_STR_LIT{10,"all tests ok...?",10}
 END_FCN runAllTests
 
@@ -426,13 +427,84 @@ DECL_FCN test_lcg_random
 END_FCN  test_lcg_random
 
 
+section .data
+    lit_failMsg: decl_char_t "FAIL",10,0
+    lit_failMsg.length: equ ($ - lit_failMsg) / sizeof_char_t
+    lit_failMsg.sizeof: equ sizeof_char_t
 
+    ; DECL_STRING lit_failMsg, "FAIL: "
+    DECL_STRING lit_arrow,   " => "
+section .text
 
+; doParseIntTest
+;   in ksi input
+;   in kbx base
+;   in kdx expected
+doParseIntTest:
+    push ksi
+    call parseInt
+    pop  ksi
+    push kax
+    mov kdi, io_scratch_buffer
+    WRITE_CHR 39
+    WRITE_STRZ ksi
+    WRITE_STR_LIT2 {39," => "}
+    WRITE_DEC  kax
+    pop kax
+    cmp kax, kdx
+    jz .ok
+        WRITE_STR_LIT2 {" != "}
+        WRITE_DEC kdx
+        WRITE_STR_LIT2 {": FAIL!",10}
+        jmp .done
+    .ok:
+        WRITE_STR_LIT2 {": OK",10}
+    .done:
+    call ioWrite
+    ret
 
+; PARSE_INT_TEST input string, base, expected
+%macro PARSE_INT_TEST 3
+section .data
+    %%input: db %1,0
+section .text
+    mov ksi, %%input
+    mov kbx, %2
+    mov kdx, %3
+    call doParseIntTest
+%endmacro
 
+DECL_FCN test_parseInt
+section .data
+    DECL_STRING .input, ""
+section .text
+    WRITE_STR_LIT {10,"parseInt tests:",10}
+    PARSE_INT_TEST "",  10, 0
+    PARSE_INT_TEST "",  16, 0
 
+    PARSE_INT_TEST "5", 10, 5
+    PARSE_INT_TEST "5", 16, 5
 
+    PARSE_INT_TEST "0", 16, 0
+    PARSE_INT_TEST "9", 16, 9
+    PARSE_INT_TEST "a", 16, 10
+    PARSE_INT_TEST "b", 16, 11
+    PARSE_INT_TEST "f", 16, 15
+    PARSE_INT_TEST "A", 16, 10
+    PARSE_INT_TEST "F", 16, 15
 
+    PARSE_INT_TEST "12cf", 16, 0x12cf
+    PARSE_INT_TEST "12CF", 16, 0x12CF
+    PARSE_INT_TEST "12cf", 10, 12
+    PARSE_INT_TEST "12CF", 10, 12
 
+    PARSE_INT_TEST "-a1", 16, -0xA1
 
+    PARSE_INT_TEST "100", 10, 100
+    PARSE_INT_TEST "100", 16, 256
+    PARSE_INT_TEST "100", 2,  4
+    PARSE_INT_TEST "-102498109", 10, -102498109
+    PARSE_INT_TEST "deadbeef", 16, 0xdeadbeef
+    PARSE_INT_TEST "102984() ", 10, 102984
+END_FCN test_parseInt
 

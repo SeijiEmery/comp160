@@ -15,9 +15,9 @@ WRITE_DEC 2547: 2547
 WRITE_DEC -1:   -1
 WRITE_DEC -90:  -90
 WRITE_HEX_8 0x0:        00  <>
-WRITE_HEX_8 0x1:        01  <>
-WRITE_HEX_8 0x123098:   98  <>
-WRITE_HEX_8 -0x1:       FF  <>
+WRITE_HEX_8 0x1:        01
+WRITE_HEX_8 0x123098:   98
+WRITE_HEX_8 -0x1:       FF
 WRITE_HEX_16 0x0:       0000  <>
 WRITE_HEX_16 0x1:       0001  <>
 WRITE_HEX_16 0x123098:  3098  <>
@@ -115,5 +115,29 @@ lcgRandRange(100)
   16 17 82 51 4 37 94 
   35 12 57 86 99 8 73 
   26 63 40 45 30 95 80 
+
+parseInt tests:
+'' => 0: OK
+'' => 0: OK
+'5' => 5: OK
+'5' => 5: OK
+'0' => 0: OK
+'9' => 9: OK
+'a' => 10: OK
+'b' => 11: OK
+'f' => 15: OK
+'A' => 10: OK
+'F' => 15: OK
+'12cf' => 4815: OK
+'12CF' => 4815: OK
+'12cf' => 12: OK
+'12CF' => 12: OK
+'-a1' => -161: OK
+'100' => 100: OK
+'100' => 256: OK
+'100' => 4: OK
+'-102498109' => -102498109: OK
+'deadbeef' => -559038737: OK
+'102984() ' => 102984: OK
 
 all tests ok...?
