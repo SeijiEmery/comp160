@@ -1,12 +1,16 @@
 
 Full source code at https://github.com/SeijiEmery/comp160/tree/master/Assignment6/
 
+
 Windows build instructions:
 – No project files, but there are 2 source files:
     – src/a6_pt1_win32.asm
     – src/a6_pt2_win32.asm
 – Both are single, standalone programs that target 32-bit MASM,
   with a dependency on the Irvine32 library from class.
+--
+
+
 
 OSX build instructions:
 – For once, this is just a port of the windows version, ported to NASM, and
@@ -29,7 +33,7 @@ To clean:
 
 When done:
     cd <some-temp-directory>
-    rm -f semery_comp160
+    rm -rf semery_comp160
 
 OSX DEPENDENCIES
 – install brew:  http://brew.sh/
