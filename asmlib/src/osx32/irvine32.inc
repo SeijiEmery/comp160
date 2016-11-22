@@ -58,6 +58,7 @@
 %define IO_BUFFER_SIZE 4096
 section .bss
     stdout_buffer: resb IO_BUFFER_SIZE
+    stdin_buffer:  resb IO_BUFFER_SIZE
 section .data
     stdout_ptr: dd 0
 section .text
@@ -203,6 +204,46 @@ DECL_FCN ReadString
     pop edx
 END_FCN ReadString
 
+DECL_FCN ReadHex
+    push esi
+    push edx
+    push ecx
+    push ebx
+
+    mov edx, stdin_buffer
+    mov ecx, IO_BUFFER_SIZE
+    call ReadString
+
+    mov esi, stdin_buffer
+    mov ebx, 16
+    call parseInt
+
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+END_FCN  ReadHex
+
+DECL_FCN ReadDec
+    push esi
+    push edx
+    push ecx
+    push ebx
+
+    mov edx, stdin_buffer
+    mov ecx, IO_BUFFER_SIZE
+    call ReadString
+
+    mov esi, stdin_buffer
+    mov ebx, 10
+    call parseInt
+
+    pop ebx
+    pop ecx
+    pop edx
+    pop esi
+END_FCN ReadDec
+
 ;
 ; Random functions
 ;
@@ -224,5 +265,3 @@ DECL_FCN Randomize
     IO_EXIT_STDOUT
     SYSCALL_EXIT -1
 END_FCN  Randomize
-
-
