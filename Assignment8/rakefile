@@ -1,0 +1,7 @@
+require '../tools/rake_nasm'
+
+nasm_target("part1", "src/a8_pt1_osx32.asm", idir=["../asmlib/", "../asmlib/src/"])
+nasm_target("part2", "src/a8_pt2_osx32.asm", idir=["../asmlib/", "../asmlib/src/"])
+
+task :default => ["part1", "part2"]
+task :clean do sh "rm -f build/*" end
