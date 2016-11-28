@@ -152,13 +152,33 @@ section .text
 
     mov ah, al
     shl al, 2
-    call .writeGrid
-    shr al, 1
-    add dl, al
-    add dh, ah
-    shl al, 1
-    call .writeGrid
 
+    ; Write main color grid
+    push eax
+    mov eax, [edi]
+    call SetTextColor
+    pop eax
+        call .writeGrid
+        shr al, 1
+        add dl, al
+        add dh, ah
+        shl al, 1
+        call .writeGrid
+
+    ; Write secondary color
+    push eax
+    mov eax, [edi + 4]
+    call SetTextColor
+    pop eax
+        sub dh, ah
+        call .writeGrid
+        shr al, 1
+        add dh, ah
+        sub dl, al
+        shl al, 1
+        call .writeGrid
+
+    call ResetTextColor
     popad
     ret
 
@@ -200,50 +220,19 @@ section .text
 
 DECL_FCN DB2
 section .data
-    .spaceStr: db "    ",0    
+    %macro DECL_COLOR_TABLE 2
+        dd (%1 << 4) | %1, (%2 << 4) | %2
+    %endmacro
+    .colorTable: DECL_COLOR_TABLE lightGray, red
 section .text
-    mov ax, (red << 4) | red
-    call SetTextColor
+    mov edi, .colorTable
+    mov dl, 8
+    mov dh, 8
 
-    mov dl, 20
-    mov dh, 5
-
-    mov cl, 8
-    mov ch, 8
-    mov eax, 2
+    mov cl, 4
+    mov ch, 4
+    mov eax, 1
     call drawCheckerboard
-
-
-    ; mov dl, 10
-    ; mov dh, 20
-
-    ; mov ecx, 0x320000
-    ; .outerLoop:
-    ;     and dh, 4
-    ;     add dh, 20
-    ;     mov cx, 8
-    ;     .innerLoop:
-    ;         push edx
-    ;         call Gotoxy
-    ;         mov edx, .spaceStr
-    ;         call WriteString
-    ;         pop edx
-    ;         add dh, 8
-
-    ;         dec cx
-    ;         jg .innerLoop
-    ;     .endInnerLoop:
-    ;     inc  dl
-    ;     sub  ecx, 0x10000
-    ;     test ecx, 0x20000
-    ;     jnz .outerLoop
-
-    ;     add dh, 4
-    ;     sub ecx, 0x20000
-    ;     jg .outerLoop
-    ; .endOuterLoop:
-    ; call ResetTextColor
-
 END_FCN  DB2
 
 
@@ -308,7 +297,7 @@ END_FCN  DrawBoardDemo
 DECL_FCN DrawRainbowText
 section .data
     ; .red_text: db 27,"[44;34m",0
-    .text: db "Hello, World!",10,0
+    .text: db "Hello,",27,"[46;1m World!",10,0
 section .text
     mov ecx, 16
 

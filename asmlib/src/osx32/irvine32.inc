@@ -180,12 +180,13 @@ section .data
         db "3" ; brown/yellow:         6/14
         db "7" ; lightGray/white:      7/15
     %macro WRITE_COLOR_CODE 1
-        and eax, 0x7
-        mov dl, [eax + .colorLut]
+        mov edx, eax
+        and edx, 0x7
+        mov dl, [edx + .colorLut]
         mov [edi+%1], dl
         test eax, 0x8
         jnz %%lskip
-            mov [edi+%1+1], word BP2(';','1')
+            mov [edi+%1+1], word BP3(';','1',0)
             inc edi
             inc edi
         %%lskip:
@@ -195,8 +196,15 @@ section .text
     push edx
     ; write("\x[4%s;3%sm", lut(color & 0xf, (color >> 4) & 0xf))
     IO_ENTER_STDOUT
+    test eax, 0x8
+    jnz .skip
+        mov [edi], word BP2(';','1')
+        add edi, 2
+    .skip:
+
     mov [edi], dword BP4(27,'[','4',0)
     WRITE_COLOR_CODE 3
+    
     shr eax, 4
     mov [edi+4], word BP2(';','3')
     WRITE_COLOR_CODE 6
