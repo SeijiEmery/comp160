@@ -1,0 +1,10 @@
+require '../tools/rake_nasm'
+
+nasm_target("part1", "src/a7_pt1_osx32.asm", idir=["../asmlib/", "../asmlib/src/"])
+nasm_target("part2", "src/a7_pt2_osx32.asm", idir=["../asmlib/", "../asmlib/src/"])
+
+task :default => "build/part1" do
+    sh "cat input.txt | build/part1"
+end
+# task :default => ["part1", "part2"]
+task :clean do sh "rm -f build/*" end
