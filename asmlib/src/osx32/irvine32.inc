@@ -128,9 +128,9 @@ DECL_FCN Gotoxy
     ; WRITE_CHR byte '['
     push eax
     xor eax, eax
-    mov al, dh
-    push eax
     mov al, dl
+    push eax
+    mov al, dh
     push eax
     
     ; write screen_x

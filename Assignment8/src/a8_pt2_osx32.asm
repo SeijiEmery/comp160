@@ -117,6 +117,87 @@ _DrawChessBoard:
     popad
     ret
 
+
+; drawCheckerboard
+;   in dl, dh: (x/y) initial grid position
+;   in cl, ch: (x/y) # grid cells
+;   in al:           cell size (clamped 0-7).
+drawCheckerboard:
+section .data
+    ; .str_lut:
+    .s8: db '  '
+    .s7: db '  '
+    .s6: db '  '
+    .s5: db '  '
+    .s4: db '  '
+    .s3: db '  '
+    .s2: db '  '
+    .s1: db '  ',0
+    ; .s1: db '  ',0
+    ; .s2: db '    ',0
+    ; .s3: db '      ',0
+    ; .s4: db '        ',0
+    ; .s5: db '          ',0
+    ; .s6: db '            ',0
+    ; .s7: db '              ',0
+    ; .s8: db '                ',0
+    .lut: dd .s1, 1, .s2, 2, .s3, 3, .s4, 4,
+          dd .s5, 5, .s6, 6, .s7, 7, .s8, 8
+section .text
+    pushad
+    and eax, 7
+    mov esi, [.lut + eax * 8]      ; string ptr
+    mov eax, [.lut + eax * 8 + 4]
+    mov ebx, ecx                   ; transfer count info to ebx
+
+    mov ah, al
+    shl al, 2
+    call .writeGrid
+    shr al, 1
+    add dl, al
+    add dh, ah
+    shl al, 1
+    call .writeGrid
+
+    popad
+    ret
+
+    ; writeGrid
+    ;   inout dl: x_pos,           dh: y_pos
+    ;   inout al: x_cell_offset,   ah: y_cell_offset  
+    ;   inout bl: num_x_cells,     bh: num_y_cells
+    ;   inout cl: x_counter,       ch: y_counter
+    ;   inout esi: "whitespace" ptr (prints grid sections)
+    ;
+    .writeGrid:
+        pushad
+        xor ecx, ecx
+    .loopGrid:
+        mov ch, ah
+        .writeSegment:
+            mov cl, bl
+            push edx
+            .writeLine:
+                push edx
+                call Gotoxy
+                mov  edx, esi
+                call WriteString
+                pop edx
+                add dl, al
+                dec cl
+                jg .writeLine
+            pop edx
+            inc dh
+            dec ch
+            jg .writeSegment
+        add dh, ah
+        dec bh
+        jg .loopGrid
+        popad
+        ret
+
+
+
 DECL_FCN DB2
 section .data
     .spaceStr: db "    ",0    
@@ -124,35 +205,44 @@ section .text
     mov ax, (red << 4) | red
     call SetTextColor
 
-    mov dl, 10
-    mov dh, 20
+    mov dl, 20
+    mov dh, 5
 
-    mov ecx, 0x320000
-    .outerLoop:
-        and dh, 4
-        add dh, 20
-        mov cx, 8
-        .innerLoop:
-            push edx
-            call Gotoxy
-            mov edx, .spaceStr
-            call WriteString
-            pop edx
-            add dh, 8
+    mov cl, 8
+    mov ch, 8
+    mov eax, 2
+    call drawCheckerboard
 
-            dec cx
-            jg .innerLoop
-        .endInnerLoop:
-        inc  dl
-        sub  ecx, 0x10000
-        test ecx, 0x20000
-        jnz .outerLoop
 
-        add dh, 4
-        sub ecx, 0x20000
-        jg .outerLoop
-    .endOuterLoop:
-    call ResetTextColor
+    ; mov dl, 10
+    ; mov dh, 20
+
+    ; mov ecx, 0x320000
+    ; .outerLoop:
+    ;     and dh, 4
+    ;     add dh, 20
+    ;     mov cx, 8
+    ;     .innerLoop:
+    ;         push edx
+    ;         call Gotoxy
+    ;         mov edx, .spaceStr
+    ;         call WriteString
+    ;         pop edx
+    ;         add dh, 8
+
+    ;         dec cx
+    ;         jg .innerLoop
+    ;     .endInnerLoop:
+    ;     inc  dl
+    ;     sub  ecx, 0x10000
+    ;     test ecx, 0x20000
+    ;     jnz .outerLoop
+
+    ;     add dh, 4
+    ;     sub ecx, 0x20000
+    ;     jg .outerLoop
+    ; .endOuterLoop:
+    ; call ResetTextColor
 
 END_FCN  DB2
 
@@ -247,6 +337,14 @@ section .text
 END_FCN DrawRainbowText
 
 DECL_FCN _main
+    mov dl, 0
+    mov dh, 10
+    call Gotoxy
+    mov ax, green
+    call SetTextColor
+    mov edx, DrawRainbowText.text
+    call WriteString
+
     call DB2
     ; call DrawRainbowText
     ; call DrawBoardDemo
