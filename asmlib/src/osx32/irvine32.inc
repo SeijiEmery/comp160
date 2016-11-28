@@ -76,32 +76,56 @@ section .text
     pop edi
 %endmacro
 
+; Byte-packing macros (defined for little-endian; redefine for big-endian)
+%define BP4(a,b,c,d) (a)|(b<<8)|(c<<16)|(d<<24)
+%define BP3(a,b,c)   BP4(a,b,c,0)
+%define BP2(a,b)     (a)|(b<<8)
+
 ; Clrscr()
 DECL_FCN Clrscr
     ; Write clear command 27,"[2J"
-    mov [stdout_buffer+0], byte 27  ; esc
-    mov [stdout_buffer+1], byte '['
-    mov [stdout_buffer+2], byte '2'
-    mov [stdout_buffer+3], byte 'J'
+    mov [stdout_buffer], dword BP4(27,'[','2','J')
+    ; mov [stdout_buffer+0], byte 27  ; esc
+    ; mov [stdout_buffer+1], byte '['
+    ; mov [stdout_buffer+2], byte '2'
+    ; mov [stdout_buffer+3], byte 'J'
 
     ; write reset to 0,0 command 27,"[0;0H"
-    mov [stdout_buffer+4], byte 27  ; esc
-    mov [stdout_buffer+5], byte '['
-    mov [stdout_buffer+6], byte '0'
-    mov [stdout_buffer+7], byte ';'
-    mov [stdout_buffer+8], byte '0'
-    mov [stdout_buffer+9], byte ';'
-    mov [stdout_buffer+10],byte 'H'
+    mov [stdout_buffer+4], dword BP4(27,'[','0',';')
+    ; mov [stdout_buffer+4], byte 27  ; esc
+    ; mov [stdout_buffer+5], byte '['
+    ; mov [stdout_buffer+6], byte '0'
+    ; mov [stdout_buffer+7], byte ';'
+    mov [stdout_buffer+8], dword BP3(0,';','H')
+    ; mov [stdout_buffer+8], byte '0'
+    ; mov [stdout_buffer+9], byte ';'
+    ; mov [stdout_buffer+10],byte 'H'
 
     SYSCALL_WRITE STDOUT, stdout_buffer, 11
 END_FCN Clrscr
+
+DECL_FCN ResetTextColor
+section .data
+    .clearColor: db 27,"[39;49m",0
+    .clearColor.length: equ $ - .clearColor - 1 
+    .clearAll:   db 27,"[0m",0
+    .clearAll.length: equ $ - .clearAll - 1
+section .text
+    SYSCALL_WRITE STDOUT, .clearAll, .clearAll.length
+END_FCN ResetTextColor
+
+
 
 ; Gotoxy( dh screen_y, dl screen_x )
 DECL_FCN Gotoxy
     ; Write equivalent of printf("^[[%d,%dH", screen_x, screen_y) to stdout
     IO_ENTER_STDOUT
-    WRITE_CHR byte 27    ; esc
-    WRITE_CHR byte '['
+    mov [edi], word BP2(27,'[')
+    inc edi
+    inc edi
+
+    ; WRITE_CHR byte 27    ; esc
+    ; WRITE_CHR byte '['
     push eax
     xor eax, eax
     mov al, dh
@@ -122,6 +146,67 @@ DECL_FCN Gotoxy
     pop eax
     IO_EXIT_STDOUT
 END_FCN  Gotoxy
+
+; Color definitions
+black        equ 0
+blue         equ 1
+green        equ 2
+cyan         equ 3
+red          equ 4
+magenta      equ 5
+brown        equ 6
+lightGray    equ 7
+gray         equ 8 | black
+lightBlue    equ 8 | blue
+lightGreen   equ 8 | green
+lightCyan    equ 8 | cyan
+lightRed     equ 8 | red
+lightMagenta equ 8 | magenta
+yellow       equ 8 | brown
+white        equ 8 | lightGray
+
+; SetTextColor( ax color )
+DECL_FCN SetTextColor
+section .data
+    ; Lookup table to translate DOS => SGR colors.
+    ; Necessary b/c of different mappings.
+    .colorLut:
+        db "0" ; black/gray:           0/8
+        db "4" ; blue/lightBlue:       1/9
+        db "2" ; green/lightGreen:     2/10
+        db "6" ; cyan/lightCyan:       3/11
+        db "1" ; red/lightRed:         4/12
+        db "5" ; magenta/lightMagenta: 5/13
+        db "3" ; brown/yellow:         6/14
+        db "7" ; lightGray/white:      7/15
+    %macro WRITE_COLOR_CODE 1
+        and eax, 0x7
+        mov dl, [eax + .colorLut]
+        mov [edi+%1], dl
+        test eax, 0x8
+        jnz %%lskip
+            mov [edi+%1+1], word BP2(';','1')
+            inc edi
+            inc edi
+        %%lskip:
+    %endmacro
+section .text
+    push eax
+    push edx
+    ; write("\x[4%s;3%sm", lut(color & 0xf, (color >> 4) & 0xf))
+    IO_ENTER_STDOUT
+    mov [edi], dword BP4(27,'[','4',0)
+    WRITE_COLOR_CODE 3
+    shr eax, 4
+    mov [edi+4], word BP2(';','3')
+    WRITE_COLOR_CODE 6
+    mov [edi+7], byte 'm'
+    add edi, 8
+    IO_EXIT_STDOUT
+    pop edx
+    pop eax
+END_FCN SetTextColor
+
 
 ; Clrf()
 DECL_FCN Crlf

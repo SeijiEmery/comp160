@@ -1,4 +1,4 @@
-; Assignment 7, part 1
+; Assignment 8, part 1
 ;   Implements + runs tests for a Euclidean GCD algorithm.
 ;
 ; Target platform: osx, 32-bit
@@ -6,7 +6,7 @@
 ;   uses rake (a ruby-based build system) for nasm builds
 ;
 ; Author: Seiji Emery (student: M00202623)
-; Creation Date:  11/21/16
+; Creation Date:  11/28/16
 ; Revisions, etc: https://github.com/SeijiEmery/comp160/tree/master/Assignment7
 ;
 
