@@ -56,6 +56,10 @@ lit_eq:       db " = ",0
 lit_result:   db "result:   ",0
 lit_expected: db "expected: ",0
 
+; Thousands decimal separator
+DECIMAL_SEP_INTERVAL equ 3
+DECIMAL_SEP_CHR      equ ','
+
 ; Helper macro
 %macro WRITE_ADD_PACKED 1
     call Crlf
@@ -188,32 +192,101 @@ AddPackedDecimal:
     pop esi
     ret
 
+wpd_bufSize: equ 4096
+section .bss
+    wpd_scratchBuffer: resb wpd_bufSize
+section .text
+
+
 ; WritePackedDecimal: Writes a packed integer to stdout
 ;   inout esi ptr-to-packed-int
 ;   inout ecx num-bytes
 WritePackedDecimal:
-    push ecx
-    push esi
-    push ebx
-    push eax
+    pushad
 
-    add esi, ecx
-    xor eax, eax
-    mov ebx, 1
+    ; Copy digits to scratchBuffer
+    ; (each byte is two digits, eg. 0x45 = '4','5')
+    mov edi, wpd_scratchBuffer
+    .copyDigitsToBuffer:
+        ; Copy low digit
+        mov al, [esi]
+        and al, 0xf
+        or  al, 0x30
+        mov [edi], al
+        inc edi
+
+        ; Copy high digit
+        mov al, [esi]
+        shr al, 4
+        or  al, 0x30
+        mov [edi], al
+        inc edi
+
+        inc esi
+        loop .copyDigitsToBuffer
+
+    ; Walk back to the 1st non-zero digit (or the 1st zero if all zeros)
+    .searchFirstNonZero:
+        dec edi
+        cmp [edi], byte 0x30
+        jnz .endSearch
+
+        cmp edi, ebx
+        jg .searchFirstNonZero
+    .endSearch:
+
+    ; Finally, we write the final string:
+    ; – Write backwards (we want high digits 1st, now low digits)
+    ; – Convert to ASCII (still in BCD)
+    ; – Add ',' digit separators
+
+    ; Set pointers
+    mov esi, edi
+    add edi, 1
+
+    ; Calculate num_digits
+    mov ecx, esi
+    add ecx, 2
+    sub ecx, wpd_scratchBuffer
+
+    xor edx, edx
+    mov eax, ecx
+    add eax, 1
+    mov ebx, DECIMAL_SEP_INTERVAL
+    idiv ebx
+
+    mov ebx, edx
+    inc ebx
+
+    mov edx, edi
 
     .writeLoop:
-        dec esi
-        push ecx
         mov al, [esi]
-        call WriteHexB
-        pop ecx
+        mov [edi], al
+        dec esi
+        inc edi
+
+        sub ebx,1
+        je .writeSep
 
         dec ecx
+        jle .endLoop
+        jmp .writeLoop
+    .writeSep:
+        mov ebx, DECIMAL_SEP_INTERVAL
+        mov [edi], byte DECIMAL_SEP_CHR
+        inc edi
+
+        sub ecx, 1
         jg .writeLoop
+
+        ; Last char written was a sep -- unwind!
+        dec edi
     .endLoop:
 
-    pop eax
-    pop ebx
-    pop esi
-    pop ecx
+    ; Write terminator + call WriteString (string src saved in edx)
+    mov [edi-2], byte 0
+    call WriteString
+
+    popad
     ret
