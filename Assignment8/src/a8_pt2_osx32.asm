@@ -244,6 +244,8 @@ section .bss
     inputBuffer: resb INPUT_BUFFER_SIZE
 section .text
 DECL_FCN _main
+    call termios.set_mode_immediate
+
     mov [application.running], dword 1
     .mainLoop:
         mov eax, checkerboard
@@ -279,5 +281,119 @@ DECL_FCN _main
         cmp [application.running], dword 0
         jnz .mainLoop
 
+    call termios.set_mode_cannonical
 END_FCN  _main
 
+;
+; termios impl to disable cannonical mode + echo (ie. switch to immediate mode).
+; This code is extremely platform-specific, and is only implemented for osx;
+;
+
+; Platform-specific to OSX!
+; Constants from https://github.com/SeijiEmery/osx_termios_test.
+%ifdef PLATFORM_x64
+    ; termios data structure
+    termios.c_iflag equ 0x0
+    termios.c_oflag equ 0x8
+    termios.c_cflag equ 0x10
+    termios.c_lflag equ 0x18
+    termios.size equ 0x48
+
+    ; ioctl get / set termios data
+    termios.TIOCGETA equ 0x40487413
+    termios.TIOCSETA equ 0x80487414
+
+    ; termios flags
+    termios.ICANON   equ 0x100
+    termios.ECHO     equ 0x8
+%else
+    ; termios data structure
+    termios.c_iflag equ 0x0
+    termios.c_oflag equ 0x4
+    termios.c_cflag equ 0x8
+    termios.c_lflag equ 0xc
+    termsio.c_cc    equ 0x10
+    termios.c_ispeed equ 0x24
+    termios.c_ospeed equ 0x28
+    termios.size    equ 0x2c
+
+    ; ioctl get / set termios data
+    termios.TIOCGETA equ 0x40487413
+    termios.TIOCSETA equ 0x80487414
+
+    ; termios flags
+    termios.ICANON   equ 0x100
+    termios.ECHO     equ 0x8
+%endif
+
+; Save space for termios structure (temporary global variable).
+section .bss
+termios.data: resb termios.size
+section .text
+
+; Read termios structure into termios_data using ioctl.
+termios.read:
+    push eax
+    mov eax, 54
+    push dword termios.data
+    push dword termios.TIOCGETA
+    push dword STDIN
+    sub esp, 4
+    int 0x80
+    add esp, 16
+    test eax, eax
+    jnz termios.read.error
+    pop eax
+    ret
+
+; Write termios structure from termios_data using ioctl.
+termios.write:
+    push eax
+    mov eax, 54
+    push dword termios.data
+    push dword termios.TIOCSETA
+    push dword STDIN
+    sub esp, 4
+    int 0x80 
+    add esp, 16
+    test eax, eax
+    jnz termios.write.error
+    pop eax
+    ret
+
+; Turn cannonical (wait for newline), and echo mode on
+termios.set_mode_cannonical:
+    call termios.read
+    or DWORD [termios.data + termios.c_lflag], termios.ICANON
+    or DWORD [termios.data + termios.c_lflag], termios.ECHO
+    jmp termios.write
+
+; Turn cannonical (wait for newline), and echo mode off
+termios.set_mode_immediate:
+    call termios.read
+    and DWORD [termios.data + termios.c_lflag], ~termios.ICANON
+    and DWORD [termios.data + termios.c_lflag], ~termios.ECHO
+    jmp termios.write
+
+termios.read.error:
+section .data
+    .msg: db "termios.read() error: ",0
+section .text
+    mov edx, .msg
+    call WriteString
+    push eax
+    call WriteInt
+    call Crlf
+    pop eax
+    jmp _sys_exit
+termios.write.error:
+section .data
+    .msg: db "termios.write() error: ",0
+section .text
+    mov edx, .msg
+    call WriteString
+    push eax
+    call WriteInt
+    call Crlf
+    pop eax
+    jmp _sys_exit
