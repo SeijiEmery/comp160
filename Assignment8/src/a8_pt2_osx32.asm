@@ -47,7 +47,12 @@ checkerboard: istruc CheckerBoard
     at CheckerBoard.cell_size, dd 4
 iend
 
+; Global application state
+application.running:        dd 0
+application.currentPalette: dd 0
 section .text
+
+
 ; Draws a checkerboard.
 ;   in eax: checkerboard instance.
 CheckerBoard.draw:
@@ -126,8 +131,7 @@ CheckerBoard.draw:
 
         popad
         ret
-.drawCell:
-section .data
+    section .data
     .s8: db CELL_CHR, CELL_CHR
     .s7: db CELL_CHR, CELL_CHR
     .s6: db CELL_CHR, CELL_CHR
@@ -137,26 +141,143 @@ section .data
     .s2: db CELL_CHR, CELL_CHR
     .s1: db CELL_CHR, CELL_CHR,0
     .lut: dd .s1,1, .s2,2, .s3,3, .s4,4, .s5,5, .s6,6, .s7,7, .s8,8
+    section .text
+
+; Handles one input command
+;   in eax: checkerboard instance.
+;   in dl:  byte representing one input text character.
+CheckerBoard.handleKeyCommand:
+    %macro BRANCH 3
+        cmp %1, %2
+        jz  %3
+    %endmacro
+
+section .data
+    .lit_inputMsg: db "Recieved input: ",0
 section .text
-    pushad
-    mov esi, [eax + CheckerBoard.cell_size]
-    mov ecx, [.lut + esi * 8 + 4]
-    mov esi, [.lut + esi * 8]
+    push edx
+    mov edx, .lit_inputMsg
+    call WriteString
+    pop edx
+    mov eax, edx
+    call WriteInt
+    call Crlf
 
-    .writeCellLine:
-        mov dx, bx
-        call Gotoxy
-        mov edx, esi
-        call WriteString
-        inc bh
-        loop .writeCellLine
-
-    popad
+    BRANCH dl, 'q', .handleQuit
+    BRANCH dl, '+', .increaseGridSize
+    BRANCH dl, '=', .increaseGridSize
+    BRANCH dl, '-', .decreaseGridSize
+    BRANCH dl, '_', .decreaseGridSize
+    BRANCH dl, 'a', .moveLeft
+    BRANCH dl, 'A', .moveLeft
+    BRANCH dl, 'd', .moveRight
+    BRANCH dl, 'D', .moveRight
+    BRANCH dl, 'w', .moveUp
+    BRANCH dl, 'W', .moveUp
+    BRANCH dl, 'd', .moveDown
+    BRANCH dl, 'D', .moveDown
+    BRANCH dl, '[', .prevColor
+    BRANCH dl, ']', .nextColor
+    BRANCH dl, 'p', .swapPalette
     ret
 
+    %undef BRANCH
+
+    .handleQuit:
+        mov [application.running], dword 0
+        ret
+    .increaseGridSize:
+        inc dword [eax + CheckerBoard.cell_size]
+        ret
+    .decreaseGridSize:
+        dec dword [eax + CheckerBoard.cell_size]
+        ret
+    .moveLeft:
+        dec dword [eax + CheckerBoard.pos_x]
+        ret
+    .moveRight:
+        inc dword [eax + CheckerBoard.pos_x]
+        ret
+    .moveDown:
+        dec dword [eax + CheckerBoard.pos_y]
+        ret
+    .moveUp:
+        inc dword [eax + CheckerBoard.pos_y]
+        ret
+    ; Helper function: getPaletteColor( inout eax checkerboard, out edx color )
+    .getPaletteColor:
+        mov edx, [application.currentPalette]
+        and edx, 1
+        mov edx, [eax + CheckerBoard.color1 + edx]
+        and edx, 0xf
+        ret
+    ; Helper function: setPaletteColor( inout eax checkerboard, in edx color )
+    .setPaletteColor:
+        push ebx
+        and edx, 0xf
+        
+        mov ebx, edx
+        shl ebx, 4
+        or  edx, ebx
+
+        mov ebx, [application.currentPalette]
+        and ebx, 1
+        lea ebx, [eax + CheckerBoard.color1 + ebx]
+        mov [ebx], edx
+        pop ebx
+        ret
+    .prevColor:
+        call .getPaletteColor
+        dec edx
+        jmp .setPaletteColor
+    .nextColor:
+        call .getPaletteColor
+        inc edx
+        jmp .setPaletteColor
+    .swapPalette:
+        inc dword [application.currentPalette]
+        ret
+
+
+section .bss
+    INPUT_BUFFER_SIZE equ 4096
+    inputBuffer: resb INPUT_BUFFER_SIZE
 section .text
 DECL_FCN _main
-    mov eax, checkerboard
-    call CheckerBoard.draw
+    mov [application.running], dword 1
+    .mainLoop:
+        mov eax, checkerboard
+        call CheckerBoard.draw
+
+        mov eax, INPUT_BUFFER_SIZE
+        mov edx, inputBuffer
+        call ReadString
+
+        mov ecx, eax
+        mov esi, edx
+
+        test ecx, ecx
+        jz .noInput
+
+    section .data
+        .lit_msg: db "HAVE INPUT!: ",0
+    section .text
+        mov edx, .lit_msg
+        call WriteString
+        call WriteInt
+        call Crlf
+
+        .processInput:
+            mov eax, checkerboard
+            xor edx, edx
+            mov dl, [esi]
+            dec esi
+            call CheckerBoard.handleKeyCommand
+            loop .processInput
+        .noInput:
+
+        cmp [application.running], dword 0
+        jnz .mainLoop
+
 END_FCN  _main
 
