@@ -196,11 +196,11 @@ section .text
     push edx
     ; write("\x[4%s;3%sm", lut(color & 0xf, (color >> 4) & 0xf))
     IO_ENTER_STDOUT
-    test eax, 0x8
-    jnz .skip
-        mov [edi], word BP2(';','1')
-        add edi, 2
-    .skip:
+    ; test eax, 0x8
+    ; jnz .skip
+    ;     ; mov [edi], word BP2(';','1')
+    ;     ; add edi, 2
+    ; .skip:
 
     mov [edi], dword BP4(27,'[','4',0)
     WRITE_COLOR_CODE 3
