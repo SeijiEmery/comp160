@@ -19,105 +19,6 @@ section .text
 CELL_HEIGHT equ 2
 CELL_WIDTH  equ 2
 
-
-drawCell:
-section .data
-    .space: db "--",0
-section .text
-    call SetTextColor
-    call Gotoxy
-    push edx
-    mov edx, .space
-    call WriteString
-    pop edx
-    inc dh
-    call Gotoxy
-    push edx
-    mov edx, .space
-    call WriteString
-    pop edx
-    ret
-
-; DrawChessBoard( 
-;   u32 screen_x,  (only uses 8 bits)
-;   u32 screen_y,  (only uses 8 bits)
-;   u32 grid_size, (# x/y cells; clamped to 16)
-;   u32 color,     (DOS 4-bit background color)
-;)
-%define screen_x   [ebp + 20]
-%define screen_y   [ebp + 16]
-%define grid_size  [ebp + 12]
-%define grid_c1    [ebp + 8]
-%define grid_c2    [ebp + 9]
-_DrawChessBoard:
-    pushad
-    push ebp
-    mov ebp, esp
-
-    call writeBoardStats
-
-    ; Move cursor to top-left of screen
-    mov dl, screen_x
-    mov dh, screen_y
-    call Gotoxy
-
-    ; Load grid color(s)
-    mov al, grid_c1
-    and al, 0xf
-    shl al, 4
-    or  al, grid_c1
-    mov [ebp + 4], al
-    mov [ebp + 5], byte (white << 4) | white
-    mov [ebp + 6], al
-    mov [ebp + 7], byte (white << 4) | white
-
-    ; Load coords (in ecx)
-    mov ecx, grid_size
-    and ecx, 0xf
-    mov grid_size, ecx
-    shl ecx, 16
-    xor ebx, ebx
-
-    call writeBoardStats
-
-    .outer_loop:
-        mov cx, grid_size
-        mov dl, screen_x
-        add dh, CELL_HEIGHT
-        .inner_loop:
-            xor eax, eax
-            mov al, [ebp + ebx + 4]
-
-            pushad
-            call drawCell
-            popad
-                
-            add dl, CELL_WIDTH
-            inc ebx
-            and ebx, 1
-
-            sub cx, .inner_loop
-            jge .inner_loop
-        .end_inner_loop:
-        inc ebx
-        and ebx, 1
-        sub ecx, 0x10000
-        jge .outer_loop
-    .end_outer_loop:
-
-    ; Load grid size
-    mov ecx, grid_size
-    and ecx, 0xf
-    mov eax, ecx
-    shl ecx, 16
-    or  ecx, eax
-
-    mov esp, ebp
-    pop ebp
-    popad
-    ret
-
-
 ; drawCheckerboard
 ;   in dl, dh: (x/y) initial grid position
 ;   in cl, ch: (x/y) # grid cells
@@ -223,7 +124,7 @@ section .data
     %macro DECL_COLOR_TABLE 2
         dd (%1 << 4) | %1, (%2 << 4) | %2
     %endmacro
-    .colorTable: DECL_COLOR_TABLE lightGray, red
+    .colorTable: DECL_COLOR_TABLE black, white
 section .text
     mov edi, .colorTable
     mov dl, 8
@@ -231,59 +132,9 @@ section .text
 
     mov cl, 4
     mov ch, 4
-    mov eax, 1
+    mov eax, 2
     call drawCheckerboard
 END_FCN  DB2
-
-
-
-
-writeBoardStats:
-section .data
-    .msg_screen_x:   db "screen x:   ",0
-    .msg_screen_y:   db "screen y:   ",0
-    .msg_grid_size:  db "grid size:  ",0
-    .msg_grid_color: db "grid color: ",0
-    .msg_self:       db "self:       ",0
-section .text
-    pushad
-    %macro WRITE_X 2
-        mov edx, %1
-        call WriteString
-        mov eax, %2
-        call WriteDec
-        call Crlf
-    %endmacro
-    WRITE_X .msg_self, [ebp+4]
-    WRITE_X .msg_screen_x, screen_x
-    WRITE_X .msg_screen_y, screen_y
-    WRITE_X .msg_grid_size, grid_size
-    WRITE_X .msg_grid_color, grid_c1
-
-    %macro WRITE_MSG 2
-    section .data
-        %%string: db %1,": ",0
-    section .text
-        mov edx, %%string
-        call WriteString
-        mov eax, %2
-        call WriteDec
-        call Crlf
-    %endmacro
-
-    WRITE_MSG "[ebp-8]", [ebp-8]
-    WRITE_MSG "[ebp-4]", [ebp-4]
-    WRITE_MSG "[ebp+0]", [ebp+0]
-    WRITE_MSG "[ebp+4]", [ebp+4]
-    WRITE_MSG "[ebp+8]", [ebp+8]
-    WRITE_MSG "[ebp+12]", [ebp+12]
-    WRITE_MSG "[ebp+16]", [ebp+16]
-    WRITE_MSG "[ebp+20]", [ebp+20]
-    WRITE_MSG "[ebp+24]", [ebp+24]
-    WRITE_MSG "[ebp+28]", [ebp+28]
-
-    popad
-    ret
 
 
 DECL_FCN DrawBoardDemo
@@ -326,17 +177,7 @@ section .text
 END_FCN DrawRainbowText
 
 DECL_FCN _main
-    mov dl, 0
-    mov dh, 10
-    call Gotoxy
-    mov ax, green
-    call SetTextColor
-    mov edx, DrawRainbowText.text
-    call WriteString
-
     call DB2
-    ; call DrawRainbowText
-    ; call DrawBoardDemo
 END_FCN  _main
 
 
