@@ -18,6 +18,90 @@ section .text
 
 CELL_HEIGHT equ 2
 CELL_WIDTH  equ 2
+CELL_CHR    equ ' '
+
+%define COLOR(foreground, background) (foreground << 4) | background
+struc CheckerBoard
+    .color1: resb 1
+    .color2: resb 1
+
+    .pos_x:  resd 1
+    .pos_y:  resd 1
+
+    .size_x: resd 1
+    .size_y: resd 1
+
+    .cell_size: resd 1
+endstruc
+
+section .data
+
+; Global checkerboard instance
+checkerboard: istruc CheckerBoard
+    at CheckerBoard.color1, db COLOR(white, white)
+    at CheckerBoard.color2, db COLOR(black, black)
+    at CheckerBoard.pos_x,  dd 0
+    at CheckerBoard.pos_y,  dd 10
+    at CheckerBoard.size_x, dd 8
+    at CheckerBoard.size_y, dd 8
+    at CheckerBoard.cell_size, dd 2
+iend
+
+section .text
+; Draws a checkerboard.
+;   in eax: checkerboard instance.
+CheckerBoard.draw:
+    pushad
+    mov bl, [eax + CheckerBoard.pos_x]
+    mov bh, [eax + CheckerBoard.pos_y]
+    mov cl, [eax + CheckerBoard.size_x]
+    mov ch, [eax + CheckerBoard.size_y]
+
+    push eax
+    mov  eax, [eax + CheckerBoard.color1]
+    call SetTextColor
+    pop  eax
+
+    call .drawCell
+
+    popad
+    ret
+.drawCell:
+section .data
+    .s8: db CELL_CHR, CELL_CHR
+    .s7: db CELL_CHR, CELL_CHR
+    .s6: db CELL_CHR, CELL_CHR
+    .s5: db CELL_CHR, CELL_CHR
+    .s4: db CELL_CHR, CELL_CHR
+    .s3: db CELL_CHR, CELL_CHR
+    .s2: db CELL_CHR, CELL_CHR
+    .s1: db CELL_CHR, CELL_CHR,0
+    .lut: dd .s1,1, .s2,2, .s3,3, .s4,4, .s5,5, .s6,6, .s7,7, .s8,8
+section .text
+    pushad
+    mov esi, [eax + CheckerBoard.cell_size]
+    mov ecx, [.lut + esi * 8 + 4]
+    mov esi, [.lut + esi * 8]
+
+    .writeCellLine:
+        mov dx, bx
+        call Gotoxy
+        mov edx, esi
+        call WriteString
+        inc bh
+        loop .writeCellLine
+
+    popad
+    ret
+
+section .text
+DECL_FCN _main
+    mov eax, checkerboard
+    call CheckerBoard.draw
+END_FCN  _main
+
+
+
 
 ; drawCheckerboard
 ;   in dl, dh: (x/y) initial grid position
@@ -136,15 +220,6 @@ section .text
     call drawCheckerboard
 END_FCN  DB2
 
-
-DECL_FCN DrawBoardDemo
-    push dword red
-    push dword 8
-    push dword 5
-    push dword 10
-    call _DrawChessBoard
-END_FCN  DrawBoardDemo
-
 DECL_FCN DrawRainbowText
 section .data
     ; .red_text: db 27,"[44;34m",0
@@ -176,8 +251,5 @@ section .text
         loop .textLoop
 END_FCN DrawRainbowText
 
-DECL_FCN _main
-    call DB2
-END_FCN  _main
 
 
