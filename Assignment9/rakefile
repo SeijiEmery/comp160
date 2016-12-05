@@ -1,0 +1,6 @@
+require '../tools/rake_nasm'
+
+nasm_target("strfind", "src/osx32_stringfind.asm", idir=["../asmlib/", "../asmlib/src/"])
+
+task :default => ["strfind"]
+task :clean do sh "rm -f build/*" end
