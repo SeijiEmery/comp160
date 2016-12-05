@@ -13,6 +13,23 @@
 %define ASMLIB_SETUP_MAIN
 %include "osx32/irvine32.inc"
 
+%macro mWriteString 1
+[section .data]
+    %%str: db %1,0
+__SECT__
+    push edx
+    mov  edx, %%str
+    call WriteString
+    pop  edx
+%endmacro
+
+%macro mWriteInt 1
+    push eax
+    mov eax, %1
+    call WriteInt
+    pop eax
+%endmacro
+
 section .data
 section .text
 
@@ -49,7 +66,7 @@ iend
 
 ; Global application state
 application.running:        dd 0
-application.currentPalette: dd 0
+application.currentPalette: dd 1
 section .text
 
 
@@ -152,16 +169,8 @@ CheckerBoard.handleKeyCommand:
         jz  %3
     %endmacro
 
-section .data
-    .lit_inputMsg: db "Recieved input: ",0
-section .text
-    push edx
-    mov edx, .lit_inputMsg
-    call WriteString
-    pop edx
-    mov eax, edx
-    call WriteInt
-    call Crlf
+    test dl, dl
+    jz .skip_no_input
 
     BRANCH dl, 'q', .handleQuit
     BRANCH dl, '+', .increaseGridSize
@@ -174,35 +183,45 @@ section .text
     BRANCH dl, 'D', .moveRight
     BRANCH dl, 'w', .moveUp
     BRANCH dl, 'W', .moveUp
-    BRANCH dl, 'd', .moveDown
-    BRANCH dl, 'D', .moveDown
+    BRANCH dl, 's', .moveDown
+    BRANCH dl, 'S', .moveDown
     BRANCH dl, '[', .prevColor
     BRANCH dl, ']', .nextColor
     BRANCH dl, 'p', .swapPalette
+    .skip_no_input:
     ret
 
     %undef BRANCH
 
     .handleQuit:
+        mWriteString {"input command: quit",10}
         mov [application.running], dword 0
         ret
     .increaseGridSize:
+        mWriteString {"input command: ++cell_size",10}
         inc dword [eax + CheckerBoard.cell_size]
+        and dword [eax + CheckerBoard.cell_size], 7
         ret
     .decreaseGridSize:
+        mWriteString {"input command: --cell_size",10}
         dec dword [eax + CheckerBoard.cell_size]
+        and dword [eax + CheckerBoard.cell_size], 7
         ret
     .moveLeft:
+        mWriteString {"input command: --pos_x",10}
         dec dword [eax + CheckerBoard.pos_x]
         ret
     .moveRight:
+        mWriteString {"input command: ++pos_x",10}
         inc dword [eax + CheckerBoard.pos_x]
         ret
     .moveDown:
-        dec dword [eax + CheckerBoard.pos_y]
+        mWriteString {"input command: --pos_x",10}
+        inc dword [eax + CheckerBoard.pos_y]
         ret
     .moveUp:
-        inc dword [eax + CheckerBoard.pos_y]
+        mWriteString {"input command: ++pos_y",10}
+        dec dword [eax + CheckerBoard.pos_y]
         ret
     ; Helper function: getPaletteColor( inout eax checkerboard, out edx color )
     .getPaletteColor:
@@ -227,14 +246,17 @@ section .text
         pop ebx
         ret
     .prevColor:
+        mWriteString {"input command: next color",10}
         call .getPaletteColor
         dec edx
         jmp .setPaletteColor
     .nextColor:
+        mWriteString {"input command: prev color",10}
         call .getPaletteColor
         inc edx
         jmp .setPaletteColor
     .swapPalette:
+        mWriteString {"input command: switch palette",10}
         inc dword [application.currentPalette]
         ret
 
@@ -243,15 +265,43 @@ section .bss
     INPUT_BUFFER_SIZE equ 4096
     inputBuffer: resb INPUT_BUFFER_SIZE
 section .text
+
+writeProgramDescrip:
+section .data
+    .msg: db "Welcome to the interactive chess-board program:",10
+          db "  A / D: move board left/right",10
+          db "  W / S: move board up/down",10
+          db "  + / -: increase / decrease board size",10
+          db "  [ / ]: select prev / next board color",10
+          db "  p: switch between foreground / background color",10
+          db "  q: exit program",10,0
+section .text
+    mov dl, 0
+    mov dh, 0
+    call Gotoxy
+    mov edx, .msg
+    call WriteString
+    ret
+
 DECL_FCN _main
-    call termios.set_mode_immediate
+    call termios.init
+    call termios.set_raw_mode
+
+    ; Flush input
+    ; mov edx, inputBuffer
+    ; mov ecx, INPUT_BUFFER_SIZE
+    ; call ReadString
 
     mov [application.running], dword 1
     .mainLoop:
+        call Clrscr
+        call writeProgramDescrip
         mov eax, checkerboard
         call CheckerBoard.draw
-
-        mov eax, INPUT_BUFFER_SIZE
+        call Crlf
+    .checkInput:
+        ; mWriteString {"Checking input",10}
+        mov ecx, INPUT_BUFFER_SIZE
         mov edx, inputBuffer
         call ReadString
 
@@ -259,29 +309,26 @@ DECL_FCN _main
         mov esi, edx
 
         test ecx, ecx
-        jz .noInput
+        jz .checkInput
 
-    section .data
-        .lit_msg: db "HAVE INPUT!: ",0
-    section .text
-        mov edx, .lit_msg
-        call WriteString
-        call WriteInt
-        call Crlf
+        ; mWriteString "Have input: "
+        ; call WriteInt
+        ; call Crlf
 
         .processInput:
             mov eax, checkerboard
             xor edx, edx
             mov dl, [esi]
-            dec esi
+            inc esi
+            pushad
             call CheckerBoard.handleKeyCommand
+            popad
             loop .processInput
-        .noInput:
 
         cmp [application.running], dword 0
         jnz .mainLoop
 
-    call termios.set_mode_cannonical
+    call termios.exit
 END_FCN  _main
 
 ;
@@ -291,89 +338,183 @@ END_FCN  _main
 
 ; Platform-specific to OSX!
 ; Constants from https://github.com/SeijiEmery/osx_termios_test.
-%ifdef PLATFORM_x64
+; %ifdef PLATFORM_x64
+%if 1
     ; termios data structure
-    termios.c_iflag equ 0x0
-    termios.c_oflag equ 0x8
-    termios.c_cflag equ 0x10
-    termios.c_lflag equ 0x18
-    termios.size equ 0x48
+    termios.c_iflag  equ 0x0
+    termios.c_oflag  equ 0x8
+    termios.c_cflag  equ 0x10
+    termios.c_lflag  equ 0x18
+    termios.size     equ 0x48
 
     ; ioctl get / set termios data
     termios.TIOCGETA equ 0x40487413
     termios.TIOCSETA equ 0x80487414
-
-    ; termios flags
-    termios.ICANON   equ 0x100
-    termios.ECHO     equ 0x8
 %else
     ; termios data structure
-    termios.c_iflag equ 0x0
-    termios.c_oflag equ 0x4
-    termios.c_cflag equ 0x8
-    termios.c_lflag equ 0xc
-    termsio.c_cc    equ 0x10
+    termios.c_iflag  equ 0x0
+    termios.c_oflag  equ 0x4
+    termios.c_cflag  equ 0x8
+    termios.c_lflag  equ 0xc
+    termsio.c_cc     equ 0x10
     termios.c_ispeed equ 0x24
     termios.c_ospeed equ 0x28
-    termios.size    equ 0x2c
+    termios.size     equ 0x2c
 
     ; ioctl get / set termios data
     termios.TIOCGETA equ 0x40487413
     termios.TIOCSETA equ 0x80487414
-
-    ; termios flags
-    termios.ICANON   equ 0x100
-    termios.ECHO     equ 0x8
 %endif
+
+;
+; Termios flags
+;
+
+; c_iflag constants
+IGNBRK equ 0x1
+BRKINT equ 0x2
+IGNPAR equ 0x4
+PARMRK equ 0x8
+INPCK equ 0x10
+ISTRIP equ 0x20
+INLCR equ 0x40
+IGNCR equ 0x80
+ICRNL equ 0x100
+IXON equ 0x200
+IXANY equ 0x800
+IXOFF equ 0x400
+IMAXBEL equ 0x2000
+IUTF8 equ 0x4000
+; c_oflag constants
+OPOST equ 0x1
+ONLCR equ 0x2
+OCRNL equ 0x10
+ONOCR equ 0x20
+ONLRET equ 0x40
+OFILL equ 0x80
+OFDEL equ 0x20000
+NLDLY equ 0x300
+CRDLY equ 0x3000
+TABDLY equ 0xc04
+BSDLY equ 0x8000
+VTDLY equ 0x10000
+FFDLY equ 0x4000
+; c_cflag flag constants
+CSIZE equ 0x300
+CS5 equ 0x0
+CS6 equ 0x100
+CS7 equ 0x200
+CS8 equ 0x300
+
+CSTOPB equ 0x400
+CREAD equ 0x800
+PARENB equ 0x1000
+PARODD equ 0x2000
+HUPCL equ 0x4000
+CLOCAL equ 0x8000
+CRTSCTS equ 0x30000
+; c_lflag flag constants
+ISIG equ 0x80
+ICANON equ 0x100
+ECHO equ 0x8
+ECHOE equ 0x2
+ECHOK equ 0x4
+ECHONL equ 0x10
+ECHOCTL equ 0x40
+ECHOPRT equ 0x20
+ECHOKE equ 0x1
+FLUSHO equ 0x800000
+NOFLSH equ 0x80000000
+TOSTOP equ 0x400000
+PENDIN equ 0x20000000
+IEXTEN equ 0x400
+
+
 
 ; Save space for termios structure (temporary global variable).
 section .bss
 termios.data: resb termios.size
+termios.stdin_default_settings: resb termios.size
 section .text
 
-; Read termios structure into termios_data using ioctl.
+; Save termios stdin settings -- call at program init
+termios.init:
+    pushad
+    mov eax, STDIN
+    mov edi, termios.stdin_default_settings
+    call termios.read
+    popad
+    ret
+
+; Restore termios stdin settings
+termios.set_default_mode:
+    pushad
+    mov eax, STDIN
+    mov edi, termios.stdin_default_settings
+    call termios.write
+    popad
+    ret
+
+; Call at program exit
+termios.exit:
+    jmp termios.set_default_mode
+
+
+; Set raw input mode (inlined cfmakeraw: http://man7.org/linux/man-pages/man3/termios.3.html)
+termios.set_raw_mode:
+    pushad
+    mov eax, STDIN
+    mov edi, termios.data
+    call termios.read
+
+    ; and [termios.data + termios.c_iflag], dword ~(IGNBRK | BRKINT | PARMRK | ISTRIP | IXON)
+    ; or  [termios.data + termios.c_iflag], dword IXANY
+
+    ; and [termios.data + termios.c_oflag], dword ~OPOST
+
+    and [termios.data + termios.c_lflag], dword ~(ECHO | ECHONL | ICANON)
+    
+    ; and [termios.data + termios.c_cflag], dword ~(CSIZE | PARENB)
+    ; or  [termios.data + termios.c_cflag], dword CS8
+
+    mov eax, STDIN
+    mov edi, termios.data
+    call termios.write
+    popad
+    ret
+
+
+; Read termios structure using ioctl.
+;   in eax fd
+;   in edi ptr to termios structure
 termios.read:
-    push eax
-    mov eax, 54
-    push dword termios.data
+    push edi
     push dword termios.TIOCGETA
-    push dword STDIN
-    sub esp, 4
+    push eax
+    sub esp, 4    ; align stack
+    mov eax, 54   ; ioctl system call
     int 0x80
-    add esp, 16
+    add esp, 16   ; clear stack
+    
+    ; Assert call ok
     test eax, eax
     jnz termios.read.error
-    pop eax
     ret
 
 ; Write termios structure from termios_data using ioctl.
 termios.write:
-    push eax
-    mov eax, 54
-    push dword termios.data
+    push edi
     push dword termios.TIOCSETA
-    push dword STDIN
-    sub esp, 4
-    int 0x80 
-    add esp, 16
+    push eax
+    sub esp, 4    ; align stack
+    mov eax, 54   ; ioctl system call
+    int 0x80
+    add esp, 16   ; clear stack
+
+    ; Assert call ok
     test eax, eax
     jnz termios.write.error
-    pop eax
     ret
-
-; Turn cannonical (wait for newline), and echo mode on
-termios.set_mode_cannonical:
-    call termios.read
-    or DWORD [termios.data + termios.c_lflag], termios.ICANON
-    or DWORD [termios.data + termios.c_lflag], termios.ECHO
-    jmp termios.write
-
-; Turn cannonical (wait for newline), and echo mode off
-termios.set_mode_immediate:
-    call termios.read
-    and DWORD [termios.data + termios.c_lflag], ~termios.ICANON
-    and DWORD [termios.data + termios.c_lflag], ~termios.ECHO
-    jmp termios.write
 
 termios.read.error:
 section .data
