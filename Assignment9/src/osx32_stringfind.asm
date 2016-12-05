@@ -1,20 +1,33 @@
+; Assignment 9
+;   Implements a string-searching algorithm and tests on several strings.
+;
+; Target platform: osx, 32-bit
+;   depends on asmlib (../asmlib/)
+;   uses rake (a ruby-based build system) for nasm builds
+;
+; Author: Seiji Emery (student: M00202723)
+; Creation Date: 12/5/16
+; Revisions, etc: https://github.com/SeijiEmery/comp160/tree/master/Assignment9
+;
+
 
 %define ASMLIB_SETUP_MAIN
 %include "osx32/irvine32.inc"
 
-%macro mWriteString 1
-    push edx
-    mov edx, %1
-    call WriteString
-    pop edx
-%endmacro
+.macros:
+    %macro mWriteString 1
+        push edx
+        mov edx, %1
+        call WriteString
+        pop edx
+    %endmacro
 
-%macro mWriteLit 1
-[section .data]
-    %%str: db %1,0
-__SECT__
-    mWriteString %%str
-%endmacro
+    %macro mWriteLit 1
+    [section .data]
+        %%str: db %1,0
+    __SECT__
+        mWriteString %%str
+    %endmacro
 
 section .data
     lit_Str_find_01: db "Str_find(",0
@@ -24,6 +37,7 @@ section .data
     lit_Str_find_05: db 10,0
 section .text
 
+; Testing function and macro
 ; test_Str_find(edi str, esi substr, ebx expected_value)
 test_Str_find:
     ; Write printf("Str_find(\"%s\", \"%s\") = %d; expected %d\n", 
@@ -52,41 +66,49 @@ test_Str_find:
     call Crlf
     ret
 
-%macro TEST_STR_FIND 3
-[section .data]
-    %%str:    db %1,0,0,0,0
-    %%substr: db %2,0,0,0,0
-__SECT__
-    mov edi, %%str
-    mov esi, %%substr
-    mov ebx, %3
-    call test_Str_find
-%endmacro
+    ; TEST_STR_FIND sourceStrLit, searchStrLit, expectedResult
+    %macro TEST_STR_FIND 3
+    [section .data]
+        %%str:    db %1,0,0,0,0
+        %%substr: db %2,0,0,0,0
+    __SECT__
+        mov edi, %%str
+        mov esi, %%substr
+        mov ebx, %3
+        call test_Str_find
+    %endmacro
 
 DECL_FCN _main
-    mWriteLit {10,"Initial stack: "}
-    mov eax, esp
-    call WriteInt
-    call Crlf
-    call Crlf
+    ; ; Check stack (debugging)
+    ; mWriteLit {10,"Initial stack: "}
+    ; mov eax, esp
+    ; call WriteInt
+    ; call Crlf
+    ; call Crlf
 
     pushad
-    TEST_STR_FIND "", "", 0         ; Should match if substr is empty
-    TEST_STR_FIND "", "fubar", -1   ; Should not match
-    TEST_STR_FIND "fubar", "", 0    ; Should match if substr is empty
+    TEST_STR_FIND "", "", 0         ; Should match if substr is empty.
+    TEST_STR_FIND "", "fubar", -1   ; Should not match.
+    TEST_STR_FIND "fubar", "", 5    ; Slightly weird case, but should match end of string.
 
-    TEST_STR_FIND "a", "a", 0
+    TEST_STR_FIND "a", "a", 0       ; More testcases (in parts)
     TEST_STR_FIND "abc3", "abc", 0
     TEST_STR_FIND "ababc3", "abc", 2
 
+    ; Assignment test case
     TEST_STR_FIND "123ABC342432", "ABC", 3
+
+    ; Other test case
+    TEST_STR_FIND "01ABAAAAAABABCC45ABC9012", "AAABA", 7
     popad
 
-    mWriteLit {10,"Final stack: "}
-    mov eax, esp
-    call WriteInt
-    call Crlf
+    ; ; Check stack (debugging)
+    ; mWriteLit {10,"Final stack: "}
+    ; mov eax, esp
+    ; call WriteInt
+    ; call Crlf
 END_FCN  _main
+
 
 ; Finds the first location in a c-string of a matching substring.
 ;   ccall (in stack source_str, in stack substr )
@@ -107,10 +129,15 @@ Str_find:
     mov edi, p_searchStr  ; substring
     xor edx, edx
 
-    ; %macro mDebugLit 1
-    ;     mWriteLit %1
-    ; %endmacro
+    ; Enable following line for debugging (prints one character per phase to trace logic;
+    ; actually as good / better than breakpoints when used well):
+    ;   's' -- outer loop (searchFirstMatchingChar) iteration
+    ;   'S' -- inner loop (tryMatchSubstr) iteration
+    ;   '*' -- set eax = saved esi ptr (tracks start of matched string)
+    ;   'Y' -- found match
+    ;   'N' -- no match
     %macro mDebugLit 1
+        ; mWriteLit %1
     %endmacro
 
     ; mWriteLit {10,"Beginning search",10}
