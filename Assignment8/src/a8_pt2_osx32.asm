@@ -64,6 +64,50 @@ checkerboard: istruc CheckerBoard
     at CheckerBoard.cell_size, dd 4
 iend
 
+
+; in eax checkerboard instance
+; in dl,dh: position x/y
+section .text
+CheckerBoard.writeInfo:
+    pushad
+    %macro mWriteStringLine 1
+        push edx
+        call Gotoxy
+        mWriteString %1
+        pop edx
+        inc dh
+    %endmacro
+    mWriteStringLine "colors:     "
+    push ebx
+    mov ebx, [eax + CheckerBoard.color1]
+    and ebx, 0xf
+    mWriteInt ebx
+    mWriteString ", "
+    mov ebx, [eax + CheckerBoard.color2]
+    and ebx, 0xf
+    mWriteInt ebx
+    pop ebx
+    mWriteStringLine "position:   "
+    mWriteInt [eax + CheckerBoard.pos_x]
+    mWriteString ",  "
+    mWriteInt [eax + CheckerBoard.pos_y]
+    mWriteStringLine "dimensions: "
+    mWriteInt [eax + CheckerBoard.size_x]
+    mWriteString ",  "
+    mWriteInt [eax + CheckerBoard.size_y]
+    mWriteStringLine "size:       "
+    mWriteInt [eax + CheckerBoard.cell_size]
+    mWriteStringLine "palette:    "
+    mov eax, [application.currentPalette]
+    and eax, 1
+    call WriteInt
+
+    popad
+    ret
+    %undef mWriteStringLine
+
+section .data
+
 ; Global application state
 application.running:        dd 0
 application.currentPalette: dd 1
@@ -78,11 +122,6 @@ CheckerBoard.draw:
     mov bh, [eax + CheckerBoard.pos_y]
     mov cl, [eax + CheckerBoard.size_x]
     mov ch, [eax + CheckerBoard.size_y]
-
-    push eax
-    mov  eax, [eax + CheckerBoard.color1]
-    call SetTextColor
-    pop  eax
 
     call .writeCellGrid
     call ResetTextColor
@@ -101,12 +140,12 @@ CheckerBoard.draw:
         call Gotoxy
         inc bh
         ; add bh, [edi + CheckerBoard.cell_size]
-
+        push eax
         push ecx
         .writeCellRow.innerLoop:
             push eax
             and  eax, 1
-            mov  eax, [eax + edi + CheckerBoard.color1]
+            mov  eax, [eax * 4 + edi + CheckerBoard.color1]
             call SetTextColor
             pop  eax
             inc  eax
@@ -117,6 +156,7 @@ CheckerBoard.draw:
             jg   .writeCellRow.innerLoop
 
         pop ecx
+        pop eax
         dec ch
         jg .writeCellRow.outerLoop
         ret
@@ -127,23 +167,28 @@ CheckerBoard.draw:
         pushad
         mov edi, eax
         mov esi, [edi + CheckerBoard.cell_size]
-        dec esi
+        ; dec esi
         and esi, 7
         mov esi, [.lut + esi * 8]
 
         mov ecx, [edi + CheckerBoard.size_y]
+
         xor eax, eax
+        ; mov eax, [application.currentPalette]
+        ; and eax, 1
 
         .writeCellGrid.writeLines:
             push ecx
             mov dx, bx
             call Gotoxy
-
+            ; push eax
             mov cl, [edi + CheckerBoard.size_x]
             mov ch, [edi + CheckerBoard.cell_size]
+            inc ch
             call .writeCellRow
-            pop ecx
+            ; pop eax
             inc eax
+            pop ecx
             loop .writeCellGrid.writeLines
 
         popad
@@ -178,13 +223,13 @@ CheckerBoard.handleKeyCommand:
     BRANCH dl, '-', .decreaseGridSize
     BRANCH dl, '_', .decreaseGridSize
     BRANCH dl, 'a', .moveLeft
-    BRANCH dl, 'A', .moveLeft
+    BRANCH dl, 'A', .decreaseDimensionsX
     BRANCH dl, 'd', .moveRight
-    BRANCH dl, 'D', .moveRight
+    BRANCH dl, 'D', .increaseDimensionsX
     BRANCH dl, 'w', .moveUp
-    BRANCH dl, 'W', .moveUp
+    BRANCH dl, 'W', .decreaseDimensionsY
     BRANCH dl, 's', .moveDown
-    BRANCH dl, 'S', .moveDown
+    BRANCH dl, 'S', .increaseDimensionsY
     BRANCH dl, '[', .prevColor
     BRANCH dl, ']', .nextColor
     BRANCH dl, 'p', .swapPalette
@@ -223,11 +268,27 @@ CheckerBoard.handleKeyCommand:
         mWriteString {"input command: ++pos_y",10}
         dec dword [eax + CheckerBoard.pos_y]
         ret
+    .increaseDimensionsX:
+        mWriteString {"input command: ++dim_x",10}
+        inc dword [eax + CheckerBoard.size_x]
+        ret
+    .decreaseDimensionsX:
+        mWriteString {"input command: --dim_x",10}
+        dec dword [eax + CheckerBoard.size_x]
+        ret
+    .increaseDimensionsY:
+        mWriteString {"input command: ++dim_y",10}
+        inc dword [eax + CheckerBoard.size_y]
+        ret
+    .decreaseDimensionsY:
+        mWriteString {"input command: --dim_y",10}
+        dec dword [eax + CheckerBoard.size_y]
+        ret
     ; Helper function: getPaletteColor( inout eax checkerboard, out edx color )
     .getPaletteColor:
         mov edx, [application.currentPalette]
         and edx, 1
-        mov edx, [eax + CheckerBoard.color1 + edx]
+        mov edx, [eax + CheckerBoard.color1 + edx * 4]
         and edx, 0xf
         ret
     ; Helper function: setPaletteColor( inout eax checkerboard, in edx color )
@@ -241,7 +302,7 @@ CheckerBoard.handleKeyCommand:
 
         mov ebx, [application.currentPalette]
         and ebx, 1
-        lea ebx, [eax + CheckerBoard.color1 + ebx]
+        lea ebx, [eax + CheckerBoard.color1 + ebx * 4]
         mov [ebx], edx
         pop ebx
         ret
@@ -281,6 +342,13 @@ section .text
     call Gotoxy
     mov edx, .msg
     call WriteString
+
+    mWriteString {"CheckerBoard."}
+
+
+
+
+
     ret
 
 DECL_FCN _main
@@ -296,6 +364,12 @@ DECL_FCN _main
     .mainLoop:
         call Clrscr
         call writeProgramDescrip
+        
+        mov dl, 60
+        mov dh, 1
+        mov eax, checkerboard
+        call CheckerBoard.writeInfo
+
         mov eax, checkerboard
         call CheckerBoard.draw
         call Crlf
